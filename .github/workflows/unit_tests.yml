@@ -1,0 +1,70 @@
+name: unit tests
+
+on:
+  push:
+    branches: ["main", "github-actions"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  cmake-preset-workflows:
+    # TODO: is there some way to set ${{ matrix.preset-prefix }}-${{ matrix.preset-suffix }} once ? that would be conveneient since we use it in a couple places
+    name: preset ${{ matrix.preset-prefix }}-${{ matrix.preset-suffix }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      # we want to run the cross compiler workflow on every platform we plan to support. additionally, we want to build and run the tests built for the hosts using host compilers, which requires specific host-toolchain combinations
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+        preset-prefix:
+          - stm32f3
+          - apple-clang
+          - gcc
+        preset-suffix:
+          - debug
+          - release
+        exclude:
+          - os: macos-latest
+            preset-prefix: gcc
+
+          - os: ubuntu-latest
+            preset-prefix: apple-clang
+
+    steps:
+      - name: checkout source code
+        uses: actions/checkout@v6
+
+        # only stm32f3 toolchain uses this arm cross compiler.
+        # NOTE: we set the TOOLCHAIN_PATH environment var required by the arm-none-eabi-gcc.cmake file to the path of the installed cross compiler
+      - name: install arm gnu toolchain (arm-none-eabi-gcc) for cross-compiling
+        if: matrix.preset-prefix == 'stm32f3'
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: "latest"
+          # path-env-var: TOOLCHAIN_PATH
+
+        # TODO: make a note in the readme of the expected minimum gcc (and clang) version. older versions result in compiler errors, which are due to compiler bugs (i think)
+      - name: update to latest gcc version
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          gcc-version: 14
+        run: |
+          sudo apt install gcc-${{ env.gcc-version }} g++-${{ env.gcc-version }}
+
+        # TODO: it seems like a hack to provide two cmake steps, one if ubuntu and andother for other os. all im trying to do is set the CC/CXX env vars only for ubuntu version, which uses gcc, but im too lazy to configure the default gcc/g++ to point at the latest installed version (installed above)
+      - name: run workflow preset
+        if: matrix.os != 'ubuntu-latest'
+        run: cmake --workflow ${{ matrix.preset-prefix }}-${{ matrix.preset-suffix }}
+
+      - name: run workflow preset
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          gcc-version: 14
+          CC: /usr/bin/gcc-14
+          CXX: /usr/bin/g++-14
+        run: cmake --workflow ${{ matrix.preset-prefix }}-${{ matrix.preset-suffix }}

@@ -1,0 +1,236 @@
+{
+    "version": 10,
+    "configurePresets": [
+        {
+            "name": "base-config",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_CXX_STANDARD": "23",
+                "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+                "CMAKE_CXX_EXTENSIONS": "OFF",
+                "CMAKE_COLOR_DIAGNOSTICS": "ON"
+            }
+        },
+        {
+            "name": "stm32f3-debug",
+            "inherits": "base-config",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/arm-none-eabi-gcc.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "debug"
+            }
+        },
+        {
+            "name": "apple-clang-debug",
+            "inherits": "base-config",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/apple-clang.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "debug",
+                "PROJECT_ENABLE_TESTING": true
+            }
+        },
+        {
+            "name": "gcc-debug",
+            "inherits": "base-config",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/gcc.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "debug",
+                "PROJECT_ENABLE_TESTING": true
+            }
+        },
+        {
+            "name": "stm32f3-release",
+            "inherits": "base-config",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/arm-none-eabi-gcc.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "release"
+            }
+        },
+        {
+            "name": "apple-clang-release",
+            "inherits": "base-config",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/apple-clang.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "release",
+                "PROJECT_ENABLE_TESTING": true
+            }
+        },
+        {
+            "name": "gcc-release",
+            "inherits": "base-config",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/gcc.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "release",
+                "PROJECT_ENABLE_TESTING": true
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "base-build",
+            "hidden": true,
+            "jobs": 4
+        },
+        {
+            "name": "stm32f3-debug",
+            "inherits": "base-build",
+            "configurePreset": "stm32f3-debug"
+        },
+        {
+            "name": "apple-clang-debug",
+            "inherits": "base-build",
+            "configurePreset": "apple-clang-debug"
+        },
+        {
+            "name": "gcc-debug",
+            "inherits": "base-build",
+            "configurePreset": "gcc-debug"
+        },
+        {
+            "name": "stm32f3-release",
+            "inherits": "base-build",
+            "configurePreset": "stm32f3-release"
+        },
+        {
+            "name": "apple-clang-release",
+            "inherits": "base-build",
+            "configurePreset": "apple-clang-release"
+        },
+        {
+            "name": "gcc-release",
+            "inherits": "base-build",
+            "configurePreset": "gcc-release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "base-test",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "apple-clang-debug",
+            "inherits": "base-test",
+            "configurePreset": "apple-clang-debug"
+        },
+        {
+            "name": "gcc-debug",
+            "inherits": "base-test",
+            "configurePreset": "gcc-debug"
+        },
+        {
+            "name": "apple-clang-release",
+            "inherits": "base-test",
+            "configurePreset": "apple-clang-release"
+        },
+        {
+            "name": "gcc-release",
+            "inherits": "base-test",
+            "configurePreset": "gcc-release"
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "stm32f3-debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "stm32f3-debug"
+                },
+                {
+                    "type": "build",
+                    "name": "stm32f3-debug"
+                }
+            ]
+        },
+        {
+            "name": "apple-clang-debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "apple-clang-debug"
+                },
+                {
+                    "type": "build",
+                    "name": "apple-clang-debug"
+                },
+                {
+                    "type": "test",
+                    "name": "apple-clang-debug"
+                }
+            ]
+        },
+        {
+            "name": "gcc-debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "gcc-debug"
+                },
+                {
+                    "type": "build",
+                    "name": "gcc-debug"
+                },
+                {
+                    "type": "test",
+                    "name": "gcc-debug"
+                }
+            ]
+        },
+        {
+            "name": "stm32f3-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "stm32f3-release"
+                },
+                {
+                    "type": "build",
+                    "name": "stm32f3-release"
+                }
+            ]
+        },
+        {
+            "name": "apple-clang-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "apple-clang-release"
+                },
+                {
+                    "type": "build",
+                    "name": "apple-clang-release"
+                },
+                {
+                    "type": "test",
+                    "name": "apple-clang-release"
+                }
+            ]
+        },
+        {
+            "name": "gcc-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "gcc-release"
+                },
+                {
+                    "type": "build",
+                    "name": "gcc-release"
+                },
+                {
+                    "type": "test",
+                    "name": "gcc-release"
+                }
+            ]
+        }
+    ]
+}
