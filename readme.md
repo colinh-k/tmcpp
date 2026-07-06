@@ -26,7 +26,8 @@ $ cmake --workflow apple-clang-release
 - use the library with another `cmake` project
 ```cmake
 target_link_libraries(<another-project-target>
-    tmcpp::tmcpp
+    INTERFACE
+        tmcpp::tmcpp
 )
 ```
 
@@ -36,6 +37,11 @@ target_link_libraries(<another-project-target>
 ...
 using my_list = tmcpp::list<int, bool, double>;
 ```
+
+### `cmake` configuration options
+
+- `TMCPP_ENABLE_TESTING`: set this to `true` if the unit tests should be built, and the main test target should be created
+- `TMCPP_ENABLE_WARNINGS_AS_ERRORS`: flag to enable compiler warnings as errors. only useful when compiling for testing independently
 
 ## NOTES
 

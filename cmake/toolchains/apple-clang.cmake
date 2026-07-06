@@ -54,7 +54,7 @@ add_compile_options(
 
     # NOTE: it seems we cannot use option() or cache variables in a toolchain file. so, we just have to assume the user will pass this var in
     # TODO: a potential solution: define the option() AFTER the toolchain file gets processed, ie after project() call in the main cmake list
-    $<$<BOOL:${PROJECT_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
+    $<$<BOOL:${TMCPP_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
 
     ${TOOLCHAIN_SANITIZER_FLAGS}
 )

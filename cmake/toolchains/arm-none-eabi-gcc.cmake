@@ -75,7 +75,7 @@ add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:-Wold-style-cast>"
     # warn if you overload (not override) a virtual function
     "$<$<COMPILE_LANGUAGE:CXX>:-Woverloaded-virtual>"
-    $<$<BOOL:${PROJECT_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
+    $<$<BOOL:${TMCPP_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
 
     "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>"
     "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>"

@@ -28,7 +28,7 @@
             "toolchainFile": "${sourceDir}/cmake/toolchains/apple-clang.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "debug",
-                "PROJECT_ENABLE_TESTING": true
+                "TMCPP_ENABLE_TESTING": true
             }
         },
         {
@@ -37,7 +37,7 @@
             "toolchainFile": "${sourceDir}/cmake/toolchains/gcc.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "debug",
-                "PROJECT_ENABLE_TESTING": true
+                "TMCPP_ENABLE_TESTING": true
             }
         },
         {
@@ -54,7 +54,7 @@
             "toolchainFile": "${sourceDir}/cmake/toolchains/apple-clang.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "release",
-                "PROJECT_ENABLE_TESTING": true
+                "TMCPP_ENABLE_TESTING": true
             }
         },
         {
@@ -63,7 +63,7 @@
             "toolchainFile": "${sourceDir}/cmake/toolchains/gcc.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "release",
-                "PROJECT_ENABLE_TESTING": true
+                "TMCPP_ENABLE_TESTING": true
             }
         }
     ],

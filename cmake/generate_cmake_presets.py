@@ -81,7 +81,7 @@ def main(args: argparse.Namespace):
             },
         }
         if platform_name != "stm32f3":
-            configure_preset["cacheVariables"]["PROJECT_ENABLE_TESTING"] = True
+            configure_preset["cacheVariables"]["TMCPP_ENABLE_TESTING"] = True
         configure_presets.append(configure_preset)
 
         build_preset = {

@@ -40,7 +40,7 @@ add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:-Wold-style-cast>"
     # warn if you overload (not override) a virtual function
     "$<$<COMPILE_LANGUAGE:CXX>:-Woverloaded-virtual>"
-    $<$<BOOL:${PROJECT_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
+    $<$<BOOL:${TMCPP_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
 
     # NOTE: we can either enable "-fsanitize=thread" xor these sanitizers
     "$<$<COMPILE_LANGUAGE:C,CXX>:${TOOLCHAIN_SANITIZER_FLAGS}>"
