@@ -50,4 +50,4 @@ operator""_L()
 
 };  // namespace literals
 
-};  // namespace regi
+};  // namespace tmcpp

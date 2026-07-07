@@ -26,7 +26,7 @@ $ cmake --workflow apple-clang-release
 - use the library with another `cmake` project
 ```cmake
 target_link_libraries(<another-project-target>
-    INTERFACE
+    PRIVATE
         tmcpp::tmcpp
 )
 ```
@@ -50,3 +50,40 @@ using my_list = tmcpp::list<int, bool, double>;
 ## TODO
 
 - [ ] configure `cmake` to check that certain c++ feature macros are defined for all the features this library requires. throw an error if the user did not configure the project with the expected language features, and print an error message
+
+## BUGS
+
+- [`clang` bug] there is an issue with `clang` outlined in [this](https://github.com/llvm/llvm-project/issues/178860) issue. the following example compiles on `gcc` but `clang` rejects it:
+```c++
+#include <concepts>
+#include <type_traits>
+
+template <typename U> struct foo
+{
+    template <typename T> static constexpr auto value = true;
+};
+
+auto main() -> int {
+     using X = decltype(foo<void>::template value<void>);
+    X x = true;
+
+    static_assert(std::is_same_v<X, const bool>);
+    static_assert(std::is_convertible_v<X, bool>);
+
+    return 0;
+}
+```
+with the following errors:
+```bash
+error: cannot initialize a variable of type 'X' (aka 'const auto') with an rvalue of type 'bool'
+   22 |     X x = true;
+      |       ^   ~~~~
+error: static assertion failed due to requirement 'std::is_same_v<const auto, const bool>'
+   24 |     static_assert(std::is_same_v<X, const bool>);
+      |                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error: static assertion failed due to requirement 'std::is_convertible_v<const auto, bool>'
+   25 |     static_assert(std::is_convertible_v<X, bool>);
+```
+the solution in this project is to require that all template `static` value members of a template class should NOT be declared `auto`; instead they should be explicitly typed to avoid this issue.
+
+this bug is relevant for when we want to declare a template class which has a static template member, as we often do when creating template meta-functions, eg to pass to `find_if<>`

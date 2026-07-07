@@ -9,6 +9,8 @@ target_sources(tmcpp.tmcpp
             tmcpp/concepts.hpp
             tmcpp/constexpr_string.hpp
             tmcpp/algorithm.hpp
+            tmcpp/list.hpp
+            tmcpp/multilambda.hpp
         BASE_DIRS
 )
 # NOTE: this enable headers to be verified with the compiler, even if they are not directly included in any part of the project

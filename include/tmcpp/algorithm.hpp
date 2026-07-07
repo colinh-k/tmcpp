@@ -1,17 +1,19 @@
 #pragma once
 
 #include "tmcpp/concepts.hpp"
+#include "tmcpp/list.hpp"
 
 #include <tuple>
+#include <type_traits>
 
-// we have to forward declare the typelist struct since we have to declare the
-// std::tuple_lemeent specialization outside any namespace (im pretty sure)
+// TODO: the algorithms should NOT return void to indicate a null/empty return
+// value, since perhaps the user wants (eg) find_if<IsVoidPredicate,
+// ListWithVoid> to return the first instance of void in a given list. maybe
+// create a 'not found' type which can be returned instead
+
 namespace tmcpp
 {
 
-template <typename... T> struct typelist;
-
-// needed for tuple_element specialization below
 // classic rename implementation
 template <class A, template <class...> class B> struct rename_impl;
 
@@ -24,55 +26,6 @@ struct rename_impl<A<T...>, B>
 template <class A, template <class...> class B>
 using rename = typename rename_impl<A, B>::type;
 //
-
-};  // namespace tmcpp
-
-// TODO: for next time: we will need to rewrite all our code that operates on
-// std::tuple<> types and replace it with typelist<>. we will need to rewrite
-// make_unique_tuple<> to work on typelists, and implement a replacement for
-// std::tuple_size_v<> to work with typelist. then replace all the code that
-// uses the std primitives
-//
-// TODO: UPDATE: (to above todo): ok i specialized std::tuple_size below, so
-// that we dont have to rewrite our other code that relies on using
-// std::tuple<> for typelists
-//
-// TODO: UPDATE (to above todo): ok now i think its best we create own own
-// versions of std::tuple*<> utilities to work on typelist. i just need to
-// implement tuple_cat() for typelist
-
-#if 0
-//
-// custom specialization so typelist can work with std::tuple_element
-// this should allow us to just work with typelist<> whenever we need to
-// instantiate any types in our decltype(lambda()) hacks below. by avoiding
-// std::tuple<>, we can instantiate typelists with void as one of its types
-template <std::size_t I, typename... T>
-struct std::tuple_element<I, regi::mputils::typelist<T...>>
-{
-    using typelist_as_tuple
-        = regi::mputils::rename<regi::mputils::typelist<T...>, std::tuple>;
-    using type = std::tuple_element_t<I, typelist_as_tuple>;
-};
-
-template <class... Types>
-struct std::tuple_size<regi::mputils::typelist<Types...>>
-    : std::integral_constant<std::size_t, sizeof...(Types)>
-{
-};
-//
-#endif
-
-namespace tmcpp
-{
-
-template <typename... Lambdas> struct multilambda : Lambdas...
-{
-    using Lambdas::operator()...;
-};
-// deduction guide to avoid specifying a ctor which might copy the lambdas
-template <typename... Lambdas>
-multilambda(Lambdas...) -> multilambda<Lambdas...>;
 
 // TODO: sometimes, we want to pass predicates/metafns to metafunctions here
 // which accept nttps and/or typenames. currently, the user must wrap an nttp
@@ -89,57 +42,35 @@ multilambda(Lambdas...) -> multilambda<Lambdas...>;
 // (ie eliminate returning a tuple) since we know it either exists in the list
 // or not (there can be no duplicates)
 
-template <typename... Types> struct typelist
+// type returned by search algorithms when no satisfactory types were found.
+// note that void cannot be used since the caller may want to search for a void
+// type in their list. having this distinct type allows the caller to
+// differentiate those cases
+struct not_found_type
 {
-    // consteval static auto
-    // size()
-    // {
-    //     return sizeof...(Types);
-    // }
-
-    static constexpr auto size = sizeof...(Types);
-
-    consteval static auto
-    is_empty()
-    {
-        return size == 0;
-    }
-
-    // TODO: idk if this is rlly needed
-    template <typename T>
-    consteval static auto
-    contains()
-    {
-        return std::disjunction<std::is_same<T, Types>...>::value;
-    }
 };
 
 // replacement for std::tuple_element_t<> for typelist<>
 template <std::size_t I, typename Typelist>
-using typelist_type_at = std::tuple_element_t<I, rename<Typelist, std::tuple>>;
+using at = std::tuple_element_t<I, rename<Typelist, std::tuple>>;
+
+template <typename List>
+    requires(concepts::is_template_of<List, list>)
+using is_empty = std::bool_constant<List::is_empty>;
 
 // useful to succintly define fold expression in typelist_cat
 template <typename... Ts, typename... Us>
 consteval auto
-operator+(typelist<Ts...>, typelist<Us...>)
+operator+(list<Ts...>, list<Us...>)
 {
-    return typelist<Ts..., Us...>{};
+    return list<Ts..., Us...>{};
 }
-
-// checks that a given template parameter is a typelist<> with any template
-// args inside
-// TODO: i would like to move this concept to concepts.hpp but we need the
-// declaration of struct typelist<>, which occurs in this header. idk the best
-// way to reconcile this...
-template <typename T>
-concept is_typelist
-    = requires { []<typename... Us>(typelist<Us...>) {}(std::declval<T>()); };
 
 // given multiple typelist<T...> arguments, yields an alias for a single
 // typelist<T...> which contains every type argument from each given typelist<>
 template <typename... Typelists>
-    requires(is_typelist<Typelists> and ...)
-using typelist_cat = decltype((Typelists{} + ... + typelist<>{}));
+    requires(concepts::is_template_of<Typelists, list> and ...)
+using concatenate = decltype((Typelists{} + ... + list<>{}));
 
 // https://stackoverflow.com/questions/55941964/how-to-filter-duplicate-types-from-tuple-c
 // only keeps the last remaining duplicate element of the tuple
@@ -148,11 +79,11 @@ template <template <typename...> typename Comparator,
           typename... Rest>
     requires(concepts::comparator_metafunction<Comparator, T, Rest> and ...)
 consteval auto
-make_unique_typelist_if_impl(typelist<T, Rest...>)
+make_unique_typelist_if_impl(list<T, Rest...>)
 {
     if constexpr ((Comparator<T, Rest>::value or ...))
     {
-        return make_unique_typelist_if_impl<Comparator>(typelist<Rest...>{});
+        return make_unique_typelist_if_impl<Comparator>(list<Rest...>{});
     }
     else
     {
@@ -160,12 +91,12 @@ make_unique_typelist_if_impl(typelist<T, Rest...>)
         {
             using remaining
                 = decltype(make_unique_typelist_if_impl<Comparator>(
-                    typelist<Rest...>{}));
-            return typelist_cat<typelist<T>, remaining>{};
+                    list<Rest...>{}));
+            return concatenate<list<T>, remaining>{};
         }
         else
         {
-            return typelist<T>{};
+            return list<T>{};
         }
     }
 }
@@ -176,44 +107,15 @@ template <template <typename...> typename Comparator, typename Typelist>
 using make_unique_typelist_if
     = decltype(make_unique_typelist_if_impl<Comparator>(Typelist{}));
 
-// for convenience
+// for convenience. elements are unique based on type
 template <typename Typelist>
 using make_unique_typelist = make_unique_typelist_if<std::is_same, Typelist>;
 
-// returns a tuple of tuples, where tuple_i contains all the types in
-// TypesWithId pack with the same id value
-// TODO: maybe it would be better to supply a predicate/comparator which can be
-// used to tell if two types are the same by id; this way, we dont require the
-// provided types to have an 'id' field, which means the user can use it on
-// types with fields with other names
-// TODO: add a concept/requires() clause to constrain the template param
-template <typename... TypesWithId>
-consteval static auto
-group_by_id()
-{
-    // move all types with the same id into their own tuple. this may result in
-    // duplicates, which are removed below
-    constexpr auto grouped_with_duplicates = std::tuple(
-        [](auto target)
-        {
-            using TargetType = decltype(target);
-            return std::tuple_cat(
-                [](auto current)
-                {
-                    using CurrentType = decltype(current);
-                    if constexpr (CurrentType::id == TargetType::id)
-                    {
-                        return std::tuple<CurrentType>{};
-                    }
-                    else
-                    {
-                        return std::tuple<>{};
-                    }
-                }(TypesWithId{})...);
-        }(TypesWithId{})...);
-
-    return make_unique_typelist_if_impl(grouped_with_duplicates);
-}
+// yields a list<> containing all types in List which satisfy Predicate
+template <typename Predicate, typename List>
+using filter = decltype([]<typename... T>(list<T...>){
+    return concatenate< std::conditional_t< Predicate::template value<T>, list<T>, list<> >... >{};
+}(std::declval<List>()));
 
 // returns the first type in given typelist that satisfies the given predicate,
 // or returns void if none found
@@ -226,21 +128,19 @@ group_by_id()
 // quoted metafunctions ? (idk if its even legal to overload an alias). this
 // would make it easier for the user to construct predicates (ie using
 // bind_front<>())
-template <template <typename...> typename Predicate, typename Typelist>
-    requires(is_typelist<Typelist>)
+#if 1
+template <typename Predicate, typename Typelist>
+    requires(concepts::is_template_of<Typelist, list>
+             and concepts::predicate_metafunction_for_list<Predicate, Typelist, list>)
             using find_type_if
-            = decltype([]<typename... Types>(typelist<Types...>)
-                           requires(
-                               concepts::predicate_metafunction_for<Predicate,
-                                                                    Types>
-                               and ...)
+            = decltype([]<typename... Types>(list<Types...>)
             {
                 // we use conditional_t<> for brevity to select if each type
                 // should be added to the list of types satisfying the
                 // predicate
-                using found_list = typelist_cat<typename std::conditional_t<
-                    Predicate<Types>::value, typelist<Types>, typelist<>>...>;
-                if constexpr (found_list::size == 0)
+                using found_list = concatenate<typename std::conditional_t<
+                    Predicate::template value<Types>, list<Types>, list<>>...>;
+                if constexpr (found_list::is_empty)
                 {
                     // nothing found; return void
                     return;
@@ -249,13 +149,20 @@ template <template <typename...> typename Predicate, typename Typelist>
                 {
                     // found at least 1, so return the first one.
                     // return std::tuple_element_t<0, found_list>{};
-                    return typelist_type_at<0, found_list>{};
+                    return at<0, found_list>{};
                 }
             }(Typelist{}));
+#else
+template <typename Predicate, typename List>
+    requires(concepts::is_template_of<List, list>
+             and concepts::
+                 predicate_metafunction_for_list<Predicate, List, list>)
+using find_type_if = void;
+#endif
 
 // same as normal version, but accepts a quoted meta function as the predicate
-template <concepts::quoted_metafunction QuotedPredicate, typename Typelist>
-using find_type_if_q = find_type_if<QuotedPredicate::template fn, Typelist>;
+// template <concepts::quoted_metafunction QuotedPredicate, typename Typelist>
+// using find_type_if_q = find_type_if<QuotedPredicate::template fn, Typelist>;
 
 // TODO: in most of these metafunctions, we instantiate a tuple like
 // tuple<...>{}. in doing so, we implicitly require that none of the types in
@@ -267,10 +174,9 @@ using find_type_if_q = find_type_if<QuotedPredicate::template fn, Typelist>;
 // typelist<> can handle most lists of types the user expects
 template <template <typename...> typename Fn, typename Typelist>
 using transform
-    = decltype([]<typename... Types>(typelist<Types...>)
+    = decltype([]<typename... Types>(list<Types...>)
                    requires(concepts::metafunction_for<Fn, Types> and ...)
-               { return typelist<typename Fn<Types>::type...>{}; }(
-                   Typelist{}));
+               { return list<typename Fn<Types>::type...>{}; }(Typelist{}));
 
 // takes a template metafn that accepts multiple template arguments
 // FnT and some of those arguments Args. the member fn is a new
@@ -309,4 +215,53 @@ template <template <typename...> typename Fn> struct quote
     template <typename... ArgsT> using fn = Fn<ArgsT...>;
 };
 
+// unsure if we need this anymore
+#if 0
+// returns a tuple of tuples, where tuple_i contains all the types in
+// TypesWithId pack with the same id value
+// TODO: maybe it would be better to supply a predicate/comparator which can be
+// used to tell if two types are the same by id; this way, we dont require the
+// provided types to have an 'id' field, which means the user can use it on
+// types with fields with other names
+// TODO: add a concept/requires() clause to constrain the template param
+template <typename... TypesWithId>
+consteval static auto
+group_by_id()
+{
+    // move all types with the same id into their own tuple. this may result in
+    // duplicates, which are removed below
+    constexpr auto grouped_with_duplicates = std::tuple(
+        [](auto target)
+        {
+            using TargetType = decltype(target);
+            return std::tuple_cat(
+                [](auto current)
+                {
+                    using CurrentType = decltype(current);
+                    if constexpr (CurrentType::id == TargetType::id)
+                    {
+                        return std::tuple<CurrentType>{};
+                    }
+                    else
+                    {
+                        return std::tuple<>{};
+                    }
+                }(TypesWithId{})...);
+        }(TypesWithId{})...);
+
+    return make_unique_typelist_if_impl(grouped_with_duplicates);
+}
+#endif
+
 };  // namespace tmcpp
+
+#if 0
+fundamental algorithms:
+
+transform
+filter
+concat
+front
+front_or
+empty
+#endif
