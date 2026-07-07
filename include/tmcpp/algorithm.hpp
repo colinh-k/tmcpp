@@ -46,13 +46,16 @@ using rename = typename rename_impl<A, B>::type;
 // note that void cannot be used since the caller may want to search for a void
 // type in their list. having this distinct type allows the caller to
 // differentiate those cases
-struct not_found_type
+struct not_found
 {
 };
 
+#if 0
 // replacement for std::tuple_element_t<> for typelist<>
-template <std::size_t I, typename Typelist>
-using at = std::tuple_element_t<I, rename<Typelist, std::tuple>>;
+template <std::size_t I, typename List>
+    requires(concepts::is_template_of<List, list>)
+using at = std::tuple_element_t<I, rename<List, std::tuple>>;
+#endif
 
 template <typename List>
     requires(concepts::is_template_of<List, list>)
@@ -111,73 +114,48 @@ using make_unique_typelist_if
 template <typename Typelist>
 using make_unique_typelist = make_unique_typelist_if<std::is_same, Typelist>;
 
+// returns the first type in the list, or the given default type if list is
+// empty
+// NOTE: we cant just use std::conditional_t<> since we need short-circuit
+// evaluation, ie at<0, List> must only be evaluated for non-empty lists
+template <typename List, typename Default>
+    requires(concepts::is_template_of<List, list>)
+using front_or
+    = decltype([](){
+    if constexpr (List::is_empty) {
+        return Default{};
+    } else {
+        return typename List::template at<0> {};
+    }
+}());
+
 // yields a list<> containing all types in List which satisfy Predicate
 template <typename Predicate, typename List>
 using filter = decltype([]<typename... T>(list<T...>){
-    return concatenate< std::conditional_t< Predicate::template value<T>, list<T>, list<> >... >{};
+    return concatenate< std::conditional_t< Predicate::template invoke<T>::value, list<T>, list<> >... >{};
 }(std::declval<List>()));
 
 // returns the first type in given typelist that satisfies the given predicate,
-// or returns void if none found
-// NOTE: Typelist is a tuple of types NOTE: the
-// predicate parameter expects to recieve type tempalte parameters (ie NOT
-// non-type template parameters). to use a predicate that expects an nttp, use
-// the structural_constant wrapper below (see test cases for example)
-// TODO: is there some way we can overload this alias (using requires() clauses
-// ?) so that we can accept usual predicates and also predicates which are
-// quoted metafunctions ? (idk if its even legal to overload an alias). this
-// would make it easier for the user to construct predicates (ie using
-// bind_front<>())
-#if 1
-template <typename Predicate, typename Typelist>
-    requires(concepts::is_template_of<Typelist, list>
-             and concepts::predicate_metafunction_for_list<Predicate, Typelist, list>)
-            using find_type_if
-            = decltype([]<typename... Types>(list<Types...>)
-            {
-                // we use conditional_t<> for brevity to select if each type
-                // should be added to the list of types satisfying the
-                // predicate
-                using found_list = concatenate<typename std::conditional_t<
-                    Predicate::template value<Types>, list<Types>, list<>>...>;
-                if constexpr (found_list::is_empty)
-                {
-                    // nothing found; return void
-                    return;
-                }
-                else
-                {
-                    // found at least 1, so return the first one.
-                    // return std::tuple_element_t<0, found_list>{};
-                    return at<0, found_list>{};
-                }
-            }(Typelist{}));
-#else
+// or returns special 'not found' type if no such types exist in the list
 template <typename Predicate, typename List>
     requires(concepts::is_template_of<List, list>
              and concepts::
                  predicate_metafunction_for_list<Predicate, List, list>)
-using find_type_if = void;
-#endif
+using find_type_if = front_or<filter<Predicate, List>, not_found>;
 
-// same as normal version, but accepts a quoted meta function as the predicate
-// template <concepts::quoted_metafunction QuotedPredicate, typename Typelist>
-// using find_type_if_q = find_type_if<QuotedPredicate::template fn, Typelist>;
-
-// TODO: in most of these metafunctions, we instantiate a tuple like
-// tuple<...>{}. in doing so, we implicitly require that none of the types in
-// that tuple are void; if they are, a compiler error is generated. SOLUTION:
-// to fix this issue, we instantiate typelist<...>{} which places no
-// restriction on the type args when instantiated. then, we conver the typelist
-// to a tuple without instantiating
-// TODO: we probably dont need to rename<> to std::tuple anymore, since
-// typelist<> can handle most lists of types the user expects
-template <template <typename...> typename Fn, typename Typelist>
+// returns a list<> where each element is the corresponding element in List
+// after having Fn applied to it, using the library's definition of
+// 'metafunction application'
+template <typename Fn, typename List>
+    requires(concepts::unary_metafunction_for_list<Fn, List, list>)
 using transform
     = decltype([]<typename... Types>(list<Types...>)
-                   requires(concepts::metafunction_for<Fn, Types> and ...)
-               { return list<typename Fn<Types>::type...>{}; }(Typelist{}));
+               { return list<typename Fn::template invoke<Types>...>{}; }(
+                   List{}));
 
+// for now, im removing bind_front<> since idk how to fix the issues were
+// facing rn
+#if 0
 // takes a template metafn that accepts multiple template arguments
 // FnT and some of those arguments Args. the member fn is a new
 // template which accepts the remaining arguments Remaining which are passed as
@@ -186,27 +164,32 @@ using transform
 // 'bind<P,U>::template fn'. instead, we could have an alias called 'invoke'
 // which automatically converts a bound metafn to its inner fn member.... idk
 // look at boost mp11 for inspo
-template <template <typename...> typename FnT, typename... Args>
-struct bind_front
+template <typename Fn, typename... Args> struct bind_front
 {
     // NOTE: idk why the following does not work, but creating a nested struct
     // (as below) does work
     //
-    // template <typename... Remaining> using fn = FnT<Args..., Remaining...>;
-
-    template <typename... Remaining> struct apply
-    {
-        using type = FnT<Args..., Remaining...>;
-    };
-
     template <typename... Remaining>
-    using fn = typename apply<Remaining...>::type;
+    using invoke = typename Fn::template invoke<Args..., Remaining...>;
+
+    // template <typename... Remaining> struct apply
+    // {
+    //     using type = Fn<Args..., Remaining...>;
+    // };
+    //
+    // template <typename... Remaining>
+    // using fn = typename apply<Remaining...>::type;
+};
+
+template <typename Fn, typename... T> struct invoke_impl
+{
+    using type = typename Fn::template invoke<T...>;
 };
 
 // call a quoted metafn Fn with arguments T
-template <typename Fn, typename... T>
-    requires(concepts::quoted_metafunction<Fn>)
-using invoke = typename Fn::template fn<T...>;
+template <typename Fn, typename... T> using invoke = invoke_impl<Fn, T...>;
+// using invoke = typename Fn::template invoke<T...>;
+#endif
 
 // turns a non-quoted metafunction into a quoted metafunction suitable to be
 // passed to invoke<>. mainly for convenience

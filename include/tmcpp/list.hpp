@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <type_traits>
 
 namespace tmcpp
@@ -9,6 +10,9 @@ template <typename... Types> struct list
 {
     static constexpr auto size = sizeof...(Types);
     static constexpr auto is_empty = size == 0;
+
+    template <std::size_t I>
+    using at = std::tuple_element_t<I, std::tuple<Types...>>;
 
     // TODO: idk if this is rlly needed
     template <typename T>

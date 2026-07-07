@@ -8,12 +8,12 @@
 
 struct type_equal_to_int
 {
-    template <typename U> static constexpr bool value = std::is_same_v<int, U>;
+    template <typename U> using invoke = std::is_same<int, U>;
 };
 
 template <typename T> struct type_equal_to
 {
-    template <typename U> static constexpr bool value = std::is_same_v<T, U>;
+    template <typename U> using invoke = std::is_same<T, U>;
 };
 
 // TODO: we need tests to check that common mistakes dont compile, eg checking

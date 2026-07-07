@@ -19,14 +19,26 @@ concept is_template_of = decltype(multilambda{
     [](const auto &) { return std::false_type{}; },
 }(std::declval<T>()))::value;
 
-template <template <typename...> typename T, typename S>
-concept metafunction_for = requires { typename T<S>::type; };
+// metafunctions must define a template alias member 'invoke', and must accept
+// any arity of arguments Args
+template <typename T, typename... Args>
+concept invokable_metafunction_for
+    = requires { typename T::template invoke<Args...>; };
+
+template <typename T, typename List, template <typename...> typename ListT>
+concept unary_metafunction_for_list
+    = is_template_of<List, ListT> and[]<typename... Us>(ListT<Us...>)
+{
+    return (invokable_metafunction_for<T, Us> and ...);
+}
+(List{});
 
 // a type which accepts a single template parameter and yields a bool. useful
 // to pass as predicates to tmp algorithms
 template <typename T, typename... Args>
 concept predicate_metafunction_for = (requires {
-    { T::template value<Args> } -> std::convertible_to<bool>;
+    invokable_metafunction_for<T, Args>;
+    { T::template invoke<Args>::value } -> std::convertible_to<bool>;
 } and ...);
 
 // for convenience if the predicate arguments are already in a tmcpp::list<>

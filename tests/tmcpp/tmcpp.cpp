@@ -8,10 +8,12 @@
 TEST(list, at)
 {
     using L = tmcpp::list<bool, int, double, float>;
-    using Actual0 = tmcpp::at<0, L>;
-    using Actual1 = tmcpp::at<1, L>;
-    using Actual2 = tmcpp::at<2, L>;
-    using Actual3 = tmcpp::at<3, L>;
+    using Actual0 = L::at<0>;
+    using Actual1 = L::at<1>;
+    using Actual2 = L::at<2>;
+    using Actual3 = L::at<3>;
+    // should not compile:
+    // using Actual4 = tmcpp::at<4, L>;
 
     static_assert(std::is_same_v<Actual0, bool>);
     static_assert(std::is_same_v<Actual1, int>);
@@ -26,7 +28,7 @@ TEST(list, size)
     static_assert(L::size == 3);
 }
 
-TEST(list, concatenate)
+TEST(algorithm, concatenate)
 {
     using L1 = tmcpp::list<int, bool, double>;
     using L2 = tmcpp::list<float, long>;
@@ -39,7 +41,7 @@ TEST(list, concatenate)
     static_assert(std::is_same_v<L, Expected>);
 }
 
-TEST(list, concatenate_with_empty_list)
+TEST(algorithm, concatenate_with_empty_list)
 {
     using L1 = tmcpp::list<int, bool, double>;
     using L2 = tmcpp::list<>;
@@ -51,7 +53,7 @@ TEST(list, concatenate_with_empty_list)
     static_assert(std::is_same_v<L, Expected>);
 }
 
-TEST(list, concatenate_with_no_lists)
+TEST(algorithm, concatenate_with_no_lists)
 {
     using Actual = tmcpp::concatenate<>;
     using Expected = tmcpp::list<>;
@@ -59,11 +61,41 @@ TEST(list, concatenate_with_no_lists)
     static_assert(std::is_same_v<Actual, Expected>);
 }
 
+TEST(algorithm, front_or_non_empty)
+{
+    using L = tmcpp::list<double, float, int>;
+
+    using expected = double;
+    using actual = tmcpp::front_or<L, unsigned>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(algorithm, front_or_empty)
+{
+    using L = tmcpp::list<>;
+
+    using expected = unsigned;
+    using actual = tmcpp::front_or<L, unsigned>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(algorithm, front_or_empty_with_void_default)
+{
+    using L = tmcpp::list<>;
+
+    using expected = void;
+    using actual = tmcpp::front_or<L, void>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 template <typename A, typename B> using Equivalent = std::is_same<A, B>;
 
 template <typename T> struct type_equal_to
 {
-    template <typename U> static constexpr bool value = std::is_same_v<T, U>;
+    template <typename U> using invoke = std::is_same<T, U>;
 };
 
 TEST(algorithm, filter_simple)
@@ -86,7 +118,7 @@ TEST(algorithm, filter_empty)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_type_if_simple)
+TEST(algorithm, find_if_simple)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -96,16 +128,51 @@ TEST(algorithm, find_type_if_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
+TEST(algorithm, find_if_none)
+{
+    using L = tmcpp::list<int, bool, double, bool, float>;
+
+    using expected = tmcpp::not_found;
+    using actual = tmcpp::find_type_if<type_equal_to<unsigned>, L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+struct add_pointer
+{
+    template <typename T> using invoke = T *;
+};
+
+TEST(algorithm, transform)
+{
+    using L = tmcpp::list<int, double, float, bool>;
+
+    using expected = tmcpp::list<int *, double *, float *, bool *>;
+    using actual = tmcpp::transform<add_pointer, L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+// removing bind_front<> for now
 #if 0
+struct are_equal
+{
+    template <typename T, typename U> using invoke = std::is_same<T, U>;
+};
 
 TEST(mputils, bind_front)
 {
     // using Types = std::tuple<float, double, bool, int, unsigned>;
-    using EquivalentToInt = tmcpp::bind_front<Equivalent, int>;
+    using is_equal_to_int = tmcpp::bind_front<are_equal, int>;
 
-    static_assert(tmcpp::invoke<EquivalentToInt, int>::value);
-    static_assert(not tmcpp::invoke<EquivalentToInt, float>::value);
+    static_assert(tmcpp::invoke<is_equal_to_int, int>::value);
+    static_assert(not tmcpp::invoke<is_equal_to_int, float>::value);
 }
+#endif
+
+#if 0
+
+
 
 TEST(mputils, find_type_if)
 {
@@ -170,13 +237,7 @@ TEST(mputils, find_type_if_using_constexpr_string_label)
     // void type
 }
 
-TEST(mputils, transform)
-{
-    using Types = tmcpp::list<int, double, float, bool>;
-    using X = tmcpp::transform<std::add_pointer, Types>;
-    static_assert(
-        std::is_same_v<X, tmcpp::list<int *, double *, float *, bool *>>);
-}
+
 
 template <typename A, typename B>
 using LabelComparator = std::bool_constant<A::label == B::label>;
