@@ -21,6 +21,46 @@ TEST(list, at)
     static_assert(std::is_same_v<Actual3, float>);
 }
 
+template <typename List>
+consteval auto
+get_first()
+{
+    static_assert(not List::is_empty);
+
+    // NOTE: notice we need the 'template' keyword when using 'at<>'... thats
+    // ugly
+    using first = List::template at<0>;
+    return first{};
+}
+
+TEST(list, at_within_template_function)
+{
+    using L = tmcpp::list<bool, int, double, float>;
+
+    using expected = bool;
+    using actual = decltype(get_first<L>());
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+template <typename List>
+using get_first_alias = decltype([](){
+    static_assert(not List::is_empty);
+
+    using first = List::template at<0>;
+    return first{};
+}());
+
+TEST(list, at_within_template_type_alias)
+{
+    using L = tmcpp::list<bool, int, double, float>;
+
+    using expected = bool;
+    using actual = get_first_alias<L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 TEST(list, size)
 {
     using L = tmcpp::list<int, bool, double>;
