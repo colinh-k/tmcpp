@@ -125,7 +125,7 @@ using front_or
     if constexpr (List::is_empty) {
         return Default{};
     } else {
-        return typename List::template at<0> {};
+        return typename List::template at<0>{};
     }
 }());
 

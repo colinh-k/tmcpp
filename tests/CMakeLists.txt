@@ -11,7 +11,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(all-tests)
 target_sources(all-tests
     PRIVATE
-        tmcpp/constexpr_string.cpp
+        tmcpp/consteval_string.cpp
         tmcpp/tmcpp.cpp
 )
 target_link_libraries(all-tests

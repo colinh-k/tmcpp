@@ -7,18 +7,22 @@
 namespace tmcpp
 {
 
-template <std::size_t N> struct ConstexprString
+// a string suitable for compile-time-only processing, and can be used as a
+// nttp
+template <std::size_t N> struct consteval_string
 {
+    std::array<char, N> data{};
+
     // TODO: would move semantics help when transferring the char buffer to
     // this object ?
-    consteval ConstexprString(char const (&str)[N])
+    consteval consteval_string(char const (&str)[N])
     {
         std::copy_n(std::begin(str), N, std::begin(data));
     }
 
     template <std::size_t M>
     consteval auto
-    operator==(const ConstexprString<M> &other) const
+    operator==(const consteval_string<M> &other) const
     {
         // NOTE: we must use 'if constexpr' (instead of a single, compound
         // boolean expression) since operator== is not defined for std::array
@@ -32,18 +36,18 @@ template <std::size_t N> struct ConstexprString
             return false;
         }
     }
-
-    std::array<char, N> data{};
 };
 
+// TODO: the ""_L operator should be moved to the regi project; this generic
+// project should define a generic udl
 // TODO: should literals namespace be in a separate file ?
 namespace literals
 {
 
-// '_L' for 'Label', which is the intended use case
-template <ConstexprString Str>
+// '_cs' for 'consteval_string'
+template <consteval_string Str>
 consteval auto
-operator""_L()
+operator""_cs()
 {
     return Str;
 }

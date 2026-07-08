@@ -7,7 +7,7 @@ target_sources(tmcpp.tmcpp
         FILES
             tmcpp/tmcpp.hpp
             tmcpp/concepts.hpp
-            tmcpp/constexpr_string.hpp
+            tmcpp/consteval_string.hpp
             tmcpp/algorithm.hpp
             tmcpp/list.hpp
             tmcpp/multilambda.hpp
