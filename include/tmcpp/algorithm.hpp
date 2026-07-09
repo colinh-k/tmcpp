@@ -46,6 +46,8 @@ using rename = typename rename_impl<A, B>::type;
 // note that void cannot be used since the caller may want to search for a void
 // type in their list. having this distinct type allows the caller to
 // differentiate those cases
+// TODO: perhaps we should introduce tmcpp::is_not_found<T> for convenience to
+// check if a return type from one of our algorithms is not_found
 struct not_found
 {
 };
@@ -141,7 +143,7 @@ template <typename Predicate, typename List>
     requires(concepts::is_template_of<List, list>
              and concepts::
                  predicate_metafunction_for_list<Predicate, List, list>)
-using find_type_if = front_or<filter<Predicate, List>, not_found>;
+using find_if = front_or<filter<Predicate, List>, not_found>;
 
 // returns a list<> where each element is the corresponding element in List
 // after having Fn applied to it, using the library's definition of

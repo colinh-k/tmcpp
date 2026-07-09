@@ -163,7 +163,7 @@ TEST(algorithm, find_if_simple)
     using L = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = bool;
-    using actual = tmcpp::find_type_if<type_equal_to<bool>, L>;
+    using actual = tmcpp::find_if<type_equal_to<bool>, L>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -173,7 +173,7 @@ TEST(algorithm, find_if_none)
     using L = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = tmcpp::not_found;
-    using actual = tmcpp::find_type_if<type_equal_to<unsigned>, L>;
+    using actual = tmcpp::find_if<type_equal_to<unsigned>, L>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
