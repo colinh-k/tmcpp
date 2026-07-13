@@ -178,6 +178,48 @@ TEST(algorithm, find_if_none)
     static_assert(std::is_same_v<actual, expected>);
 }
 
+// TODO: add more tests for *_index algorithms
+TEST(algorithm, filter_index_simple)
+{
+    using L = tmcpp::list<int, bool, double, bool, float>;
+
+    using expected = tmcpp::list<std::integral_constant<std::size_t, 1>,
+                                 std::integral_constant<std::size_t, 3>>;
+    using actual = tmcpp::filter_index<type_equal_to<bool>, L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(algorithm, filter_index_returns_empty_list_if_no_types_satisfy_predicate)
+{
+    using L = tmcpp::list<int, bool, double, bool, float>;
+
+    using expected = tmcpp::list<>;
+    using actual = tmcpp::filter_index<type_equal_to<unsigned>, L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(algorithm, find_index_if_simple)
+{
+    using L = tmcpp::list<int, bool, double, bool, float>;
+
+    using expected = std::integral_constant<std::size_t, 2>;
+    using actual = tmcpp::find_index_if<type_equal_to<double>, L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(algorithm, find_index_if_not_found)
+{
+    using L = tmcpp::list<int, bool, double, bool, float>;
+
+    using expected = tmcpp::not_found;
+    using actual = tmcpp::find_index_if<type_equal_to<unsigned>, L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 struct add_pointer
 {
     template <typename T> using invoke = T *;

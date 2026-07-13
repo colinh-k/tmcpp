@@ -47,6 +47,10 @@ using my_list = tmcpp::list<int, bool, double>;
 
 - some of the files might contain references to `stm32`. this is an artifact from when this project was part of another project targeting that platform
 
+## LINKS
+
+- useful blog post about c++11 template metaprogramming; author discusses their TMP library called turbo [(link)](https://manu343726.github.io/2015-03-19-haskellizing-tmp/)
+
 ## TODO
 
 - [ ] configure `cmake` to check that certain c++ feature macros are defined for all the features this library requires. throw an error if the user did not configure the project with the expected language features, and print an error message

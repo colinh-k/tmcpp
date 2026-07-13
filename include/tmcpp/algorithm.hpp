@@ -5,6 +5,7 @@
 
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 // TODO: the algorithms should NOT return void to indicate a null/empty return
 // value, since perhaps the user wants (eg) find_if<IsVoidPredicate,
@@ -116,6 +117,16 @@ using make_unique_typelist_if
 template <typename Typelist>
 using make_unique_typelist = make_unique_typelist_if<std::is_same, Typelist>;
 
+// returns a list<> where each element is the corresponding element in List
+// after having Fn applied to it, using the library's definition of
+// 'metafunction application'
+template <typename Fn, typename List>
+    requires(concepts::unary_metafunction_for_list<Fn, List, list>)
+using transform
+    = decltype([]<typename... Types>(list<Types...>)
+               { return list<typename Fn::template invoke<Types>...>{}; }(
+                   List{}));
+
 // returns the first type in the list, or the given default type if list is
 // empty
 // NOTE: we cant just use std::conditional_t<> since we need short-circuit
@@ -145,15 +156,32 @@ template <typename Predicate, typename List>
                  predicate_metafunction_for_list<Predicate, List, list>)
 using find_if = front_or<filter<Predicate, List>, not_found>;
 
-// returns a list<> where each element is the corresponding element in List
-// after having Fn applied to it, using the library's definition of
-// 'metafunction application'
-template <typename Fn, typename List>
-    requires(concepts::unary_metafunction_for_list<Fn, List, list>)
-using transform
-    = decltype([]<typename... Types>(list<Types...>)
-               { return list<typename Fn::template invoke<Types>...>{}; }(
-                   List{}));
+// returns a list<> of std::integral_constant<std::size_t, I> where each I is
+// an index into List such that the type at that index satisfies the predicate
+//
+// TODO: this implementation uses similar code to filter<>; perhaps we can
+// implement one of these algorithms in terms of the other ?
+// TODO: currently, the lambda takes 2 parameters since that makes it easier to
+// access the List types; however, its probably possible to just take the index
+// parameter and access the elements of the list via typename List::template
+// at<I>, but thats a lil more verbose
+template <typename Predicate, typename List>
+    requires(concepts::is_template_of<List, list>
+             and concepts::
+                 predicate_metafunction_for_list<Predicate, List, list>)
+using filter_index = decltype([]<std::size_t... I, typename... T>(std::index_sequence<I...>, list<T...>){
+    return concatenate< std::conditional_t< Predicate::template invoke<T>::value, list<std::integral_constant<std::size_t, I>>, list<> >... >{};
+}(std::make_index_sequence<List::size>(), std::declval<List>()));
+;
+
+// returns std::integral_constant<std::size_t, I> where I is the first index of
+// the list containing a type satisfying the predicate. returns not_found if no
+// such type exists in the list
+template <typename Predicate, typename List>
+    requires(concepts::is_template_of<List, list>
+             and concepts::
+                 predicate_metafunction_for_list<Predicate, List, list>)
+using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
 
 // for now, im removing bind_front<> since idk how to fix the issues were
 // facing rn
