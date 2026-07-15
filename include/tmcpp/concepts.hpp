@@ -76,6 +76,16 @@ concept comparator_metafunction = requires {
     { T<Arg1, Arg2>::value } -> std::convertible_to<bool>;
 };
 
+template <typename T, typename Arg1, typename Arg2>
+concept comparator_metafunction_for = (requires {
+    invokable_metafunction_for<T, Arg1, Arg2>;
+    { T::template invoke<Arg1, Arg2>::value } -> std::convertible_to<bool>;
+});
+
+// TODO: i want to write a 'concept comparator_metafunction_for', but im not
+// exactly sure how to write a concept for a metafunction that takes 2 args,
+// for each pair of args in a list. we should write one later for consistency
+
 };  // namespace concepts
 
 };  // namespace tmcpp

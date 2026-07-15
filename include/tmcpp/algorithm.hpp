@@ -78,26 +78,32 @@ template <typename... Typelists>
     requires(concepts::is_template_of<Typelists, list> and ...)
 using concatenate = decltype((Typelists{} + ... + list<>{}));
 
+// return list<Ts..., U> where Ts are the types in List provided U is not in Ts
+// (as decided by the comparator); otherwise return List
+template <typename Comparator, typename List, typename U>
+using append_if_unique = decltype([]<typename... Ts>(list<Ts...>)
+{
+    return std::conditional_t<(Comparator::template invoke<Ts, U>::value or ... or false), List, list<Ts..., U>>{};
+}(List{}));
+
 // https://stackoverflow.com/questions/55941964/how-to-filter-duplicate-types-from-tuple-c
 // only keeps the last remaining duplicate element of the tuple
-template <template <typename...> typename Comparator,
-          typename T,
-          typename... Rest>
-    requires(concepts::comparator_metafunction<Comparator, T, Rest> and ...)
+template <typename Comparator, typename T, typename... Rest>
+    requires(concepts::comparator_metafunction_for<Comparator, T, Rest>
+             and ...)
 consteval auto
-make_unique_typelist_if_impl(list<T, Rest...>)
+remove_duplicates_if_impl(list<T, Rest...>)
 {
-    if constexpr ((Comparator<T, Rest>::value or ...))
+    if constexpr ((Comparator::template invoke<T, Rest>::value or ...))
     {
-        return make_unique_typelist_if_impl<Comparator>(list<Rest...>{});
+        return remove_duplicates_if_impl<Comparator>(list<Rest...>{});
     }
     else
     {
         if constexpr (sizeof...(Rest) > 0)
         {
-            using remaining
-                = decltype(make_unique_typelist_if_impl<Comparator>(
-                    list<Rest...>{}));
+            using remaining = decltype(remove_duplicates_if_impl<Comparator>(
+                list<Rest...>{}));
             return concatenate<list<T>, remaining>{};
         }
         else
@@ -109,13 +115,20 @@ make_unique_typelist_if_impl(list<T, Rest...>)
 
 // same as make_unique_tuple but two types T, U in TupleT are considered equal
 // if Comparator<T, U>::value is true
-template <template <typename...> typename Comparator, typename Typelist>
-using make_unique_typelist_if
-    = decltype(make_unique_typelist_if_impl<Comparator>(Typelist{}));
+template <typename Comparator, typename List>
+using remove_duplicates_if
+    = decltype(remove_duplicates_if_impl<Comparator>(List{}));
+
+// std::is_same but wrapped in an invokable metafunction appropriate for
+// algorithms with comparators
+struct is_same_comparator
+{
+    template <typename T, typename U> using invoke = std::is_same<T, U>;
+};
 
 // for convenience. elements are unique based on type
-template <typename Typelist>
-using make_unique_typelist = make_unique_typelist_if<std::is_same, Typelist>;
+template <typename List>
+using remove_duplicates = remove_duplicates_if<is_same_comparator, List>;
 
 // returns a list<> where each element is the corresponding element in List
 // after having Fn applied to it, using the library's definition of
