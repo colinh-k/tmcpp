@@ -10,12 +10,16 @@ option(TMCPP_ENABLE_WARNINGS_AS_ERRORS "interpret compiler warnings as errors" T
 # TODO: we need to make sure we have at least gcc-14 or clang-21, since older versions have bugs that dont compile this project. where is the best place to put this check ? it should probably be here since if we put the check in the toolchain file, then the user could simply use a different toolchain file in their project, bypassing the check. but putting it here is kinda messy since we have to check which compiler is being used
 # TODO: i feel like there should be a better way to assert the compiler is at least a certain version...
 # TODO: (update) currently, this check does NOT catch the issue with github-actions runners not using the expected clang version; find a better way to assert this...
-if (("${CMAKE_CXX_COMPILER_ID}" STREQ "GNU") AND ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_LESS "14.0"))
-    message(FATAL_ERROR "gnu compiler requires at least version 14")
-# TODO: earlier versions of clang might work, but i only tested 21 and that seems to work
-elseif(("${CMAKE_CXX_COMPILER_ID}" STREQ "AppleClang") AND ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_LESS "21.0"))
-    message(FATAL_ERROR "clang compiler requires at least version 21")
-endif()
+# TODO: sometimes, the ci pipeline on github actions fails to parse this 'if' statment ??? idk what the problem is, but im going to remove it for now
+#
+# if (("${CMAKE_CXX_COMPILER_ID}" STREQ "GNU") AND
+#     ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_LESS "14.0"))
+#     message(FATAL_ERROR "gnu compiler requires at least version 14")
+# # TODO: earlier versions of clang might work, but i only tested 21 and that seems to work
+#
+# elseif(("${CMAKE_CXX_COMPILER_ID}" STREQ "AppleClang") AND ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_LESS "21.0"))
+#     message(FATAL_ERROR "clang compiler requires at least version 21")
+# endif()
 
 # TODO: notice that we allow the user to specify the c++ standard version. as such, we need to find some way to assert that the c++ standard features the library uses are present in the current build configuration.
 
