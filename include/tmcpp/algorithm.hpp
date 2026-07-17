@@ -49,7 +49,7 @@ using rename = typename rename_impl<A, B>::type;
 // differentiate those cases
 // TODO: perhaps we should introduce tmcpp::is_not_found<T> for convenience to
 // check if a return type from one of our algorithms is not_found
-struct not_found
+struct not_found final
 {
 };
 
@@ -88,6 +88,8 @@ using append_if_unique = decltype([]<typename... Ts>(list<Ts...>)
 
 // https://stackoverflow.com/questions/55941964/how-to-filter-duplicate-types-from-tuple-c
 // only keeps the last remaining duplicate element of the tuple
+// TODO: we MUST make sure this works for empty or single-element lists. i ran
+// into issues trying to use it on empty lists earlier...
 template <typename Comparator, typename T, typename... Rest>
     requires(concepts::comparator_metafunction_for<Comparator, T, Rest>
              and ...)
@@ -163,6 +165,10 @@ using filter = decltype([]<typename... T>(list<T...>){
 
 // returns the first type in given typelist that satisfies the given predicate,
 // or returns special 'not found' type if no such types exist in the list
+// TODO: i think this algorithm should return an empty list if there are no
+// types that satisfy the predicate (instead of not_found). this might make it
+// easier to chain algorithms using the result of find_if<>, without needing to
+// make a special case to check not_found
 template <typename Predicate, typename List>
     requires(concepts::is_template_of<List, list>
              and concepts::

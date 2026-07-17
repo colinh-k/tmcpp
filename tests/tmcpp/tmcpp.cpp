@@ -284,6 +284,16 @@ TEST(algorithm, remove_duplicates_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
+TEST(algorithm, remove_duplicates_empty)
+{
+    using L = tmcpp::list<>;
+
+    using expected = tmcpp::list<>;
+    using actual = tmcpp::remove_duplicates<L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 // removing bind_front<> for now
 #if 0
 struct are_equal
