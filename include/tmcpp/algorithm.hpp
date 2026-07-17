@@ -117,9 +117,16 @@ remove_duplicates_if_impl(list<T, Rest...>)
 
 // same as make_unique_tuple but two types T, U in TupleT are considered equal
 // if Comparator<T, U>::value is true
+// TODO: this is a stopgap solution for the empty list case; find a more
+// elegant solution
 template <typename Comparator, typename List>
-using remove_duplicates_if
-    = decltype(remove_duplicates_if_impl<Comparator>(List{}));
+using remove_duplicates_if = decltype([](){
+    if constexpr (List::is_empty) {
+        return list<>{};
+    } else {
+        return remove_duplicates_if_impl<Comparator>(List{});
+    }
+}());
 
 // std::is_same but wrapped in an invokable metafunction appropriate for
 // algorithms with comparators
