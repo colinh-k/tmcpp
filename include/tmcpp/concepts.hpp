@@ -37,7 +37,7 @@ concept unary_metafunction_for_list
 // to pass as predicates to tmp algorithms
 template <typename T, typename... Args>
 concept predicate_metafunction_for = (requires {
-    invokable_metafunction_for<T, Args>;
+    requires invokable_metafunction_for<T, Args>;
     { T::template invoke<Args>::value } -> std::convertible_to<bool>;
 } and ...);
 
@@ -78,7 +78,7 @@ concept comparator_metafunction = requires {
 
 template <typename T, typename Arg1, typename Arg2>
 concept comparator_metafunction_for = (requires {
-    invokable_metafunction_for<T, Arg1, Arg2>;
+    requires invokable_metafunction_for<T, Arg1, Arg2>;
     { T::template invoke<Arg1, Arg2>::value } -> std::convertible_to<bool>;
 });
 
