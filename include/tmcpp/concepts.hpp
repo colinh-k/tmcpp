@@ -36,10 +36,10 @@ concept unary_metafunction_for_list
 // a type which accepts a single template parameter and yields a bool. useful
 // to pass as predicates to tmp algorithms
 template <typename T, typename... Args>
-concept predicate_metafunction_for = (requires {
-    requires invokable_metafunction_for<T, Args>;
-    { T::template invoke<Args>::value } -> std::convertible_to<bool>;
-} and ...);
+concept predicate_metafunction_for
+    = ((invokable_metafunction_for<T, Args> and requires {
+           { T::template invoke<Args>::value } -> std::convertible_to<bool>;
+       }) and ...);
 
 // for convenience if the predicate arguments are already in a tmcpp::list<>
 // TODO: we require a third arg ListT to be a template-template type of the
