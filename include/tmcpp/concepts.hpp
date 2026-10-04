@@ -4,6 +4,8 @@
 
 #include "tmcpp/multilambda.hpp"
 
+#include "tmcpp/list.hpp"
+
 namespace tmcpp
 {
 
@@ -13,48 +15,50 @@ namespace concepts
 // constrains T to be a template type matching TargetT, but T and TargetT may
 // have different template arguments
 // eg is_template_of<std::tuple<int, float>, std::tuple> is legal
-template <typename T, template <typename...> typename TargetT>
-concept is_template_of = decltype(multilambda{
-    []<typename... U>(const TargetT<U...> &) { return std::true_type{}; },
-    [](const auto &) { return std::false_type{}; },
-}(std::declval<T>()))::value;
+template <typename T, template <typename...> typename Template>
+concept TemplateOf
+    = std::invoke_result_t<decltype(multilambda{
+                               []<typename... U>(const Template<U...> &)
+                               { return std::true_type{}; },
+                               [](const auto &) { return std::false_type{}; },
+                           }),
+                           T>::value;
+
+template <typename T>
+concept ListLike = TemplateOf<T, list>;
 
 // metafunctions must define a template alias member 'invoke', and must accept
 // any arity of arguments Args
 template <typename T, typename... Args>
-concept invokable_metafunction_for
-    = requires { typename T::template invoke<Args...>; };
+concept MetafunctionFor = requires { typename T::template invoke<Args...>; };
 
-template <typename T, typename List, template <typename...> typename ListT>
-concept unary_metafunction_for_list
-    = is_template_of<List, ListT> and[]<typename... Us>(ListT<Us...>)
-{
-    return (invokable_metafunction_for<T, Us> and ...);
-}
-(List{});
+// checks that T can be invoked with all types in List, one-at-a-time
+template <typename T, typename List>
+concept UnaryMetafunctionForList
+    = ListLike<List>
+      and ([]<typename... Us>(list<Us...>)
+           { return (MetafunctionFor<T, Us> and ...); }(List{}));
 
 // a type which accepts a single template parameter and yields a bool. useful
 // to pass as predicates to tmp algorithms
-template <typename T, typename... Args>
-concept predicate_metafunction_for
-    = ((invokable_metafunction_for<T, Args> and requires {
-           { T::template invoke<Args>::value } -> std::convertible_to<bool>;
-       }) and ...);
+template <typename T, typename Arg>
+concept UnaryPredicateFor = requires {
+    { T::template invoke<Arg>::value } -> std::convertible_to<bool>;
+};
+#if 0
+concept UnaryPredicateFor = ((MetafunctionFor<T, Args> and requires {
+                                 {
+                                     T::template invoke<Args>::value
+                                 } -> std::convertible_to<bool>;
+                             }) and ...);
+#endif
 
 // for convenience if the predicate arguments are already in a tmcpp::list<>
-// TODO: we require a third arg ListT to be a template-template type of the
-// given List argument. without ListT, we would require the definition of
-// tmcpp::list<> to be in scope, but im trying to keep concepts agnostic of
-// library data structures... at least for now. consider if it would make sense
-// to include list in concepts here... (i think there is an argument to be
-// made)
-template <typename T, typename List, template <typename...> typename ListT>
-concept predicate_metafunction_for_list
-    = is_template_of<List, ListT> and[]<typename... Us>(ListT<Us...>)
-{
-    return predicate_metafunction_for<T, Us...>;
-}
-(List{});
+template <typename T, typename List>
+concept UnaryPredicateForList
+    = ListLike<List>
+      and ([]<typename... Us>(list<Us...>)
+           { return (UnaryPredicateFor<T, Us> and ... and true); }(List{}));
 
 // L is a tuple of types which will be passed to the metafunction
 // TODO: this concept is not very well-posed; we need a better way to check
@@ -71,16 +75,15 @@ template <typename T>
 concept quoted_metafunction = requires { typename T::template fn<int>; };
 
 // binary metafunction intended to check if two types are equal
-template <template <typename...> typename T, typename Arg1, typename Arg2>
-concept comparator_metafunction = requires {
-    { T<Arg1, Arg2>::value } -> std::convertible_to<bool>;
-};
+// template <template <typename...> typename T, typename Arg1, typename Arg2>
+// concept comparator_metafunction = requires {
+//     { T<Arg1, Arg2>::value } -> std::convertible_to<bool>;
+// };
 
 template <typename T, typename Arg1, typename Arg2>
-concept comparator_metafunction_for = (requires {
-    requires invokable_metafunction_for<T, Arg1, Arg2>;
+concept BinaryPredicateFor = requires {
     { T::template invoke<Arg1, Arg2>::value } -> std::convertible_to<bool>;
-});
+};
 
 // TODO: i want to write a 'concept comparator_metafunction_for', but im not
 // exactly sure how to write a concept for a metafunction that takes 2 args,
