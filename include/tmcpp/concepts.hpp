@@ -2,9 +2,8 @@
 
 #include <concepts>
 
-#include "tmcpp/multilambda.hpp"
-
 #include "tmcpp/list.hpp"
+#include "tmcpp/multilambda.hpp"
 
 namespace tmcpp
 {
@@ -35,9 +34,30 @@ concept MetafunctionFor = requires { typename T::template invoke<Args...>; };
 // checks that T can be invoked with all types in List, one-at-a-time
 template <typename T, typename List>
 concept UnaryMetafunctionForList
-    = ListLike<List>
+    = ListLike<List> and not List::is_empty
       and ([]<typename... Us>(list<Us...>)
            { return (MetafunctionFor<T, Us> and ...); }(List{}));
+
+// nttp version to work with any template callable object
+template <auto T, typename... Args>
+concept MetafunctionObjectFor = requires { T.template operator()<Args...>(); };
+
+// TODO: note that passing an invalid metafunction object with an empty list
+// will NOT be caught by this concept. the issue is that the pack expansion
+// would be empty, so anything passed as T would succeed. but there still might
+// be a poor-quality compile error later on when the illegal T is used in the
+// body of whatever template using this concept. the solution is to require
+// List to be nonempty. however, for some algorithms like transform, it is
+// perfectly valid to transform an empty list (the result is just an empty
+// list), so we cannot constrain List to be nonempty here.
+// the same issue exists for other concepts like UnaryMetafunctionForList
+// NOTE: to save us from bad template errors later, im going to enforce
+// nonempty list for now
+template <auto T, typename List>
+concept UnaryMetafunctionObjectForList
+    = ListLike<List> and not List::is_empty
+      and ([]<typename... Us>(list<Us...>)
+           { return (MetafunctionObjectFor<T, Us> and ...); }(List{}));
 
 // a type which accepts a single template parameter and yields a bool. useful
 // to pass as predicates to tmp algorithms
@@ -45,20 +65,26 @@ template <typename T, typename Arg>
 concept UnaryPredicateFor = requires {
     { T::template invoke<Arg>::value } -> std::convertible_to<bool>;
 };
-#if 0
-concept UnaryPredicateFor = ((MetafunctionFor<T, Args> and requires {
-                                 {
-                                     T::template invoke<Args>::value
-                                 } -> std::convertible_to<bool>;
-                             }) and ...);
-#endif
 
 // for convenience if the predicate arguments are already in a tmcpp::list<>
 template <typename T, typename List>
 concept UnaryPredicateForList
-    = ListLike<List>
+    = ListLike<List> and not List::is_empty
       and ([]<typename... Us>(list<Us...>)
            { return (UnaryPredicateFor<T, Us> and ... and true); }(List{}));
+
+template <auto T, typename Arg>
+concept UnaryPredicateObjectFor = requires {
+    { T.template operator()<Arg>() } -> std::convertible_to<bool>;
+};
+
+// for convenience if the predicate arguments are already in a tmcpp::list<>
+template <auto T, typename List>
+concept UnaryPredicateObjectForList
+    = ListLike<List> and not List::is_empty
+      and ([]<typename... Us>(list<Us...>)
+           { return (UnaryPredicateObjectFor<T, Us> and ... and true); }(
+               List{}));
 
 // L is a tuple of types which will be passed to the metafunction
 // TODO: this concept is not very well-posed; we need a better way to check
@@ -73,12 +99,6 @@ concept UnaryPredicateForList
 // user experience
 template <typename T>
 concept quoted_metafunction = requires { typename T::template fn<int>; };
-
-// binary metafunction intended to check if two types are equal
-// template <template <typename...> typename T, typename Arg1, typename Arg2>
-// concept comparator_metafunction = requires {
-//     { T<Arg1, Arg2>::value } -> std::convertible_to<bool>;
-// };
 
 template <typename T, typename Arg1, typename Arg2>
 concept BinaryPredicateFor = requires {

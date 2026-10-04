@@ -7,6 +7,11 @@
 #include <type_traits>
 #include <utility>
 
+// NOTE: the algorithms ending in _with (eg transform_with vs transform)
+// perform the same operation as their other counterparts, except they take the
+// metafunction template argument as an nttp. we must introduce a new name
+// since type aliases do not participate in overload resolution. this leads to awkward names like find_index_if_with
+
 // TODO: the algorithms should NOT return void to indicate a null/empty return
 // value, since perhaps the user wants (eg) find_if<IsVoidPredicate,
 // ListWithVoid> to return the first instance of void in a given list. maybe
@@ -53,17 +58,10 @@ struct not_found final
 {
 };
 
-#if 0
-// replacement for std::tuple_element_t<> for typelist<>
-template <std::size_t I, typename List>
-    requires(concepts::is_template_of<List, list>)
-using at = std::tuple_element_t<I, rename<List, std::tuple>>;
-#endif
-
 template <concepts::ListLike List>
 using is_empty = std::bool_constant<List::is_empty>;
 
-// useful to succinctly define fold expression in typelist_cat
+// useful to succinctly define fold expression in concatenate implementation
 template <typename... Ts, typename... Us>
 consteval auto
 operator+(list<Ts...>, list<Us...>) -> list<Ts..., Us...>
@@ -88,12 +86,12 @@ namespace detail
 
 template <typename Comparator, concepts::ListLike List, typename U>
 constexpr auto append_if_unique = []<typename... Ts>(list<Ts...>)
+    -> std::conditional_t<(Comparator::template invoke<Ts, U>::value or ...
+                           or false),
+                          List,
+                          list<Ts..., U>>
     requires(concepts::BinaryPredicateFor<Comparator, Ts, U> and ... and true)
-{
-    return std::conditional_t<(Comparator::template invoke<Ts, U>::value or ...
-                               or false),
-                              List, list<Ts..., U>>{};
-};
+{};
 
 };  // namespace detail
 template <typename Comparator, concepts::ListLike List, typename U>
@@ -163,6 +161,19 @@ using transform = std::invoke_result_t<
                  -> list<typename Fn::template invoke<Types>...> {}),
     List>;
 
+// nttp version. allows defining a template metafunction as a lambda inline
+// instead of pre-defining a metafunction struct/class with an 'invoke' member
+// outside the call site's scope
+//
+// NOTE:must have different name than 'transform' since type aliases
+// do not participate in overload resolution, sadly
+template <auto Fn, concepts::ListLike List>
+    requires(concepts::UnaryMetafunctionObjectForList<Fn, List>)
+using transform_with = std::invoke_result_t<
+    decltype([]<typename... Types>(list<Types...>)
+                 -> list<decltype(Fn.template operator()<Types>())...> {}),
+    List>;
+
 // returns the first type in the list, or the given default type if list is
 // empty
 // NOTE: we cant just use std::conditional_t<> since we need short-circuit
@@ -180,9 +191,24 @@ using front_or
 // yields a list<> containing all types in List which satisfy Predicate
 template <typename Predicate, concepts::ListLike List>
     requires(concepts::UnaryPredicateForList<Predicate, List>)
-using filter = decltype([]<typename... T>(list<T...>){
-    return concatenate< std::conditional_t< Predicate::template invoke<T>::value, list<T>, list<> >... >{};
-}(std::declval<List>()));
+using filter = std::invoke_result_t<
+    decltype([]<typename... Ts>(list<Ts...>)
+                 -> concatenate<
+                     std::conditional_t<Predicate::template invoke<Ts>::value,
+                                        list<Ts>,
+                                        list<>>...> {}),
+    List>;
+
+// nttp version
+template <auto Predicate, concepts::ListLike List>
+    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+using filter_with = std::invoke_result_t<
+    decltype([]<typename... Ts>(list<Ts...>)
+                 ->concatenate<
+                     std::conditional_t<Predicate.template operator()<Ts>(),
+                                        list<Ts>,
+                                        list<>>...>{}),
+    List>;
 
 // returns the first type in given typelist that satisfies the given predicate,
 // or returns special 'not found' type if no such types exist in the list
@@ -193,6 +219,11 @@ using filter = decltype([]<typename... T>(list<T...>){
 template <typename Predicate, concepts::ListLike List>
     requires(concepts::UnaryPredicateForList<Predicate, List>)
 using find_if = front_or<filter<Predicate, List>, not_found>;
+
+// nttp version
+template <auto Predicate, concepts::ListLike List>
+    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+using find_if_with = front_or<filter_with<Predicate, List>, not_found>;
 
 // returns a list<> of std::integral_constant<std::size_t, I> where each I is
 // an index into List such that the type at that index satisfies the predicate
@@ -205,10 +236,28 @@ using find_if = front_or<filter<Predicate, List>, not_found>;
 // at<I>, but thats a lil more verbose
 template <typename Predicate, concepts::ListLike List>
     requires(concepts::UnaryPredicateForList<Predicate, List>)
-using filter_index = decltype([]<std::size_t... I, typename... T>(std::index_sequence<I...>, list<T...>){
-    return concatenate< std::conditional_t< Predicate::template invoke<T>::value, list<std::integral_constant<std::size_t, I>>, list<> >... >{};
-}(std::make_index_sequence<List::size>(), std::declval<List>()));
-;
+using filter_index = std::invoke_result_t<
+    decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
+                                                  list<Ts...>)
+                 -> concatenate<std::conditional_t<
+                     Predicate::template invoke<Ts>::value,
+                     list<std::integral_constant<std::size_t, I>>,
+                     list<>>...> {}),
+    std::make_index_sequence<List::size>,
+    List>;
+
+// nttp version
+template <auto Predicate, concepts::ListLike List>
+    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+using filter_index_with = std::invoke_result_t<
+    decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
+                                                  list<Ts...>)
+                 ->concatenate<std::conditional_t<
+                     Predicate.template operator()<Ts>(),
+                     list<std::integral_constant<std::size_t, I>>,
+                     list<>>...>{}),
+    std::make_index_sequence<List::size>,
+    List>;
 
 // returns std::integral_constant<std::size_t, I> where I is the first index of
 // the list containing a type satisfying the predicate. returns not_found if no
@@ -216,6 +265,12 @@ using filter_index = decltype([]<std::size_t... I, typename... T>(std::index_seq
 template <typename Predicate, concepts::ListLike List>
     requires(concepts::UnaryPredicateForList<Predicate, List>)
 using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
+
+// nttp version
+template <auto Predicate, concepts::ListLike List>
+    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+using find_index_if_with
+    = front_or<filter_index_with<Predicate, List>, not_found>;
 
 // for now, im removing bind_front<> since idk how to fix the issues were
 // facing rn
