@@ -101,7 +101,6 @@ using append_if_unique = std::invoke_result_t<
 // TODO: make a concept that checks the Comparator is valid for all
 // pairs/combinations of types in the list
 template <typename Comparator, concepts::ListLike List>
-    requires concepts::BinaryPredicateFor<Comparator, void, void>
 using remove_duplicates_if = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
@@ -127,13 +126,8 @@ using remove_duplicates_if = std::invoke_result_t<
 // template args. we need a concept to check that all combinations/pairs of
 // types in the list are valid for the comparator (or at least all the pairs we
 // are going to check in the body). additionally, it seems clang crashes when
-// we try to constrain the lambda in the decltype(). the best i can do for now
-// is check that the comparator works with two void type parameters. this might
-// give us a good error message if we mess up a little bit, but it might give
-// bad error messages if the comparator doesnt work with void, or there is a
-// pair in the list for which the comparator doesnt work
+// we try to constrain the lambda in the decltype().
 template <auto Comparator, concepts::ListLike List>
-    requires concepts::BinaryPredicateObjectFor<Comparator, void, void>
 using remove_duplicates_if_with = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
