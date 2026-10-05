@@ -10,7 +10,8 @@
 // NOTE: the algorithms ending in _with (eg transform_with vs transform)
 // perform the same operation as their other counterparts, except they take the
 // metafunction template argument as an nttp. we must introduce a new name
-// since type aliases do not participate in overload resolution. this leads to awkward names like find_index_if_with
+// since type aliases do not participate in overload resolution. this leads to
+// awkward names like find_index_if_with
 
 // TODO: the algorithms should NOT return void to indicate a null/empty return
 // value, since perhaps the user wants (eg) find_if<IsVoidPredicate,
@@ -19,19 +20,6 @@
 
 namespace tmcpp
 {
-
-// classic rename implementation
-template <class A, template <class...> class B> struct rename_impl;
-
-template <template <class...> class A, class... T, template <class...> class B>
-struct rename_impl<A<T...>, B>
-{
-    using type = B<T...>;
-};
-
-template <class A, template <class...> class B>
-using rename = typename rename_impl<A, B>::type;
-//
 
 // TODO: sometimes, we want to pass predicates/metafns to metafunctions here
 // which accept nttps and/or typenames. currently, the user must wrap an nttp
@@ -42,24 +30,33 @@ using rename = typename rename_impl<A, B>::type;
 // TODO: i should add requires clauses/concepts to each template parameter
 // where appropriate for better error messages
 
-// TODO: since we typeically only want lists of bit ranges with unique ids,
-// maybe just make a subclass that assumes it has unique ids. it can assert
-// uniqueness at compile time, and simplify the interface for lookup by id
-// (ie eliminate returning a tuple) since we know it either exists in the list
-// or not (there can be no duplicates)
-
 // type returned by search algorithms when no satisfactory types were found.
 // note that void cannot be used since the caller may want to search for a void
 // type in their list. having this distinct type allows the caller to
 // differentiate those cases
-// TODO: perhaps we should introduce tmcpp::is_not_found<T> for convenience to
-// check if a return type from one of our algorithms is not_found
 struct not_found final
 {
 };
 
+// for convenience
+template <typename T> using is_not_found = std::is_same<T, not_found>;
+template <typename T> constexpr auto is_not_found_v = is_not_found<T>::value;
+
 template <concepts::ListLike List>
 using is_empty = std::bool_constant<List::is_empty>;
+template <concepts::ListLike List> constexpr bool x = is_empty<List>{};
+
+template <std::size_t I, concepts::ListLike List>
+using at = typename List::template at<I>;
+//
+
+// renames a template type containing some type parameters Ts into another
+// template type containing Ts
+template <typename From, template <typename...> typename To>
+using rename = std::invoke_result_t<
+    decltype([]<template <typename...> typename FromTemplate, typename... Ts>(
+                 FromTemplate<Ts...>) -> To<Ts...> {}),
+    From>;
 
 // useful to succinctly define fold expression in concatenate implementation
 template <typename... Ts, typename... Us>
@@ -76,80 +73,92 @@ using concatenate = std::remove_cvref_t<decltype((std::declval<Lists>() + ...
 
 // return list<Ts..., U> where Ts are the types in List provided U is not in Ts
 // (as decided by the comparator); otherwise return List
-namespace detail
-{
-
-// NOTE: i decided to put the lambdas used in decltype() of
-// immediately-invoked-lambda tricks inside a detail namesapce. this is bc
-// clangd does not format code within a decltype() very well, so separating the
-// lambda makes the formatting work better
-
-template <typename Comparator, concepts::ListLike List, typename U>
-constexpr auto append_if_unique = []<typename... Ts>(list<Ts...>)
-    -> std::conditional_t<(Comparator::template invoke<Ts, U>::value or ...
-                           or false),
-                          List,
-                          list<Ts..., U>>
-    requires(concepts::BinaryPredicateFor<Comparator, Ts, U> and ... and true)
-{};
-
-};  // namespace detail
 template <typename Comparator, concepts::ListLike List, typename U>
 using append_if_unique = std::invoke_result_t<
-    decltype(detail::append_if_unique<Comparator, List, U>),
+    decltype([]<typename... Ts>(list<Ts...>)
+                 -> std::conditional_t<
+                     (Comparator::template invoke<Ts, U>::value or ...
+                      or false),
+                     List,
+                     list<Ts..., U>>
+             // TODO: clang crashes if this requires clause is un-commented:
+             // requires(concepts::BinaryPredicateFor<Comparator, Ts, U>
+             // and ... and true)
+             {}),
     List>;
 
-// https://stackoverflow.com/questions/55941964/how-to-filter-duplicate-types-from-tuple-c
-// only keeps the last remaining duplicate element of the tuple
-// TODO: we MUST make sure this works for empty or single-element lists. i ran
-// into issues trying to use it on empty lists earlier...
-template <typename Comparator, typename T, typename... Rest>
-    requires(concepts::BinaryPredicateFor<Comparator, T, Rest> and ...)
-consteval auto
-remove_duplicates_if_impl(list<T, Rest...>)
-{
-    if constexpr ((Comparator::template invoke<T, Rest>::value or ...))
-    {
-        return remove_duplicates_if_impl<Comparator>(list<Rest...>{});
-    }
-    else
-    {
-        if constexpr (sizeof...(Rest) > 0)
-        {
-            using remaining = decltype(remove_duplicates_if_impl<Comparator>(
-                list<Rest...>{}));
-            return concatenate<list<T>, remaining>{};
-        }
-        else
-        {
-            return list<T>{};
-        }
-    }
-}
-
-// same as make_unique_tuple but two types T, U in TupleT are considered equal
-// if Comparator<T, U>::value is true
-// TODO: this is a stopgap solution for the empty list case; find a more
-// elegant solution
+// removes duplicates by keeping the first instance of a type, decided by
+// Comparator
+//
+// NOTE: this looks like a mess but its straightforward. it works by
+// concatenating a bunch of lists together, one for each element in List. for
+// each type in List, it checks if any earlier index exists which contains a
+// type that compares equal to the current type: if so, yield an empty list (so
+// wont be included in final list); if not, then yield a list with the current
+// element. the concatenation will flatten all these sub-lists (which are
+// either empty of have 1 element) into a single list
+//
+// TODO: make a concept that checks the Comparator is valid for all
+// pairs/combinations of types in the list
 template <typename Comparator, concepts::ListLike List>
-using remove_duplicates_if = decltype([](){
-    if constexpr (List::is_empty) {
-        return list<>{};
-    } else {
-        return remove_duplicates_if_impl<Comparator>(List{});
-    }
-}());
+    requires concepts::BinaryPredicateFor<Comparator, void, void>
+using remove_duplicates_if = std::invoke_result_t<
+    decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
+                                                  list<Ts...>)
+                 -> concatenate<std::conditional_t<
+                     []<std::size_t... J>(std::index_sequence<J...>)
+                     {
+                         // we use an alias here since using Ts directly will
+                         // prematurely expand it with the nearest '...'
+                         // operator
+                         using T = Ts;
+                         return (
+                             Comparator::template invoke<T, at<J, List>>::value
+                             or ...);
+                     }(std::make_index_sequence<I>{}),
+                     list<>,
+                     list<at<I, List>>>...> {}),
+    std::make_index_sequence<List::size>,
+    List>;
 
-// std::is_same but wrapped in an invokable metafunction appropriate for
-// algorithms with comparators
-struct is_same_comparator
-{
-    template <typename T, typename U> using invoke = std::is_same<T, U>;
-};
+// nttp version
+//
+// TODO: this and the regular version both dont have concepts constraining the
+// template args. we need a concept to check that all combinations/pairs of
+// types in the list are valid for the comparator (or at least all the pairs we
+// are going to check in the body). additionally, it seems clang crashes when
+// we try to constrain the lambda in the decltype(). the best i can do for now
+// is check that the comparator works with two void type parameters. this might
+// give us a good error message if we mess up a little bit, but it might give
+// bad error messages if the comparator doesnt work with void, or there is a
+// pair in the list for which the comparator doesnt work
+template <auto Comparator, concepts::ListLike List>
+    requires concepts::BinaryPredicateObjectFor<Comparator, void, void>
+using remove_duplicates_if_with = std::invoke_result_t<
+    decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
+                                                  list<Ts...>)
+                 -> concatenate<std::conditional_t<
+                     []<std::size_t... J>(std::index_sequence<J...>)
+                     {
+                         // we use an alias here since using Ts directly will
+                         // prematurely expand it with the nearest '...'
+                         // operator
+                         using T = Ts;
+                         return (
+                             Comparator.template operator()<T, at<J, List>>()
+                             or ...);
+                     }(std::make_index_sequence<I>{}),
+                     list<>,
+                     list<at<I, List>>>...> {}),
+    std::make_index_sequence<List::size>,
+    List>;
 
 // for convenience. elements are unique based on type
 template <concepts::ListLike List>
-using remove_duplicates = remove_duplicates_if<is_same_comparator, List>;
+using remove_duplicates
+    = remove_duplicates_if_with<[]<typename T, typename U>
+                                { return std::is_same_v<T, U>; },
+                                List>;
 
 // returns a list<> where each element is the corresponding element in List
 // after having Fn applied to it, using the library's definition of
@@ -179,12 +188,11 @@ using transform_with = std::invoke_result_t<
 // NOTE: we cant just use std::conditional_t<> since we need short-circuit
 // evaluation, ie at<0, List> must only be evaluated for non-empty lists
 template <concepts::ListLike List, typename Default>
-using front_or
-    = std::invoke_result_t<decltype([](){
+using front_or = std::invoke_result_t<decltype([]{
     if constexpr (List::is_empty) {
         return Default{};
     } else {
-        return typename List::template at<0>{};
+        return at<0, List>{};
     }
 })>;
 
@@ -272,88 +280,12 @@ template <auto Predicate, concepts::ListLike List>
 using find_index_if_with
     = front_or<filter_index_with<Predicate, List>, not_found>;
 
-// for now, im removing bind_front<> since idk how to fix the issues were
-// facing rn
-#if 0
-// takes a template metafn that accepts multiple template arguments
-// FnT and some of those arguments Args. the member fn is a new
-// template which accepts the remaining arguments Remaining which are passed as
-// the arguments to FnT after Args, ie as FnT<Args..., Remaining...>
-// TODO: using the bound metafunction fn requires syntax like
-// 'bind<P,U>::template fn'. instead, we could have an alias called 'invoke'
-// which automatically converts a bound metafn to its inner fn member.... idk
-// look at boost mp11 for inspo
-template <typename Fn, typename... Args> struct bind_front
-{
-    // NOTE: idk why the following does not work, but creating a nested struct
-    // (as below) does work
-    //
-    template <typename... Remaining>
-    using invoke = typename Fn::template invoke<Args..., Remaining...>;
-
-    // template <typename... Remaining> struct apply
-    // {
-    //     using type = Fn<Args..., Remaining...>;
-    // };
-    //
-    // template <typename... Remaining>
-    // using fn = typename apply<Remaining...>::type;
-};
-
-template <typename Fn, typename... T> struct invoke_impl
-{
-    using type = typename Fn::template invoke<T...>;
-};
-
-// call a quoted metafn Fn with arguments T
-template <typename Fn, typename... T> using invoke = invoke_impl<Fn, T...>;
-// using invoke = typename Fn::template invoke<T...>;
-#endif
-
 // turns a non-quoted metafunction into a quoted metafunction suitable to be
 // passed to invoke<>. mainly for convenience
 template <template <typename...> typename Fn> struct quote
 {
     template <typename... ArgsT> using fn = Fn<ArgsT...>;
 };
-
-// unsure if we need this anymore
-#if 0
-// returns a tuple of tuples, where tuple_i contains all the types in
-// TypesWithId pack with the same id value
-// TODO: maybe it would be better to supply a predicate/comparator which can be
-// used to tell if two types are the same by id; this way, we dont require the
-// provided types to have an 'id' field, which means the user can use it on
-// types with fields with other names
-// TODO: add a concept/requires() clause to constrain the template param
-template <typename... TypesWithId>
-consteval static auto
-group_by_id()
-{
-    // move all types with the same id into their own tuple. this may result in
-    // duplicates, which are removed below
-    constexpr auto grouped_with_duplicates = std::tuple(
-        [](auto target)
-        {
-            using TargetType = decltype(target);
-            return std::tuple_cat(
-                [](auto current)
-                {
-                    using CurrentType = decltype(current);
-                    if constexpr (CurrentType::id == TargetType::id)
-                    {
-                        return std::tuple<CurrentType>{};
-                    }
-                    else
-                    {
-                        return std::tuple<>{};
-                    }
-                }(TypesWithId{})...);
-        }(TypesWithId{})...);
-
-    return make_unique_typelist_if_impl(grouped_with_duplicates);
-}
-#endif
 
 };  // namespace tmcpp
 

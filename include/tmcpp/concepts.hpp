@@ -86,23 +86,14 @@ concept UnaryPredicateObjectForList
            { return (UnaryPredicateObjectFor<T, Us> and ... and true); }(
                List{}));
 
-// L is a tuple of types which will be passed to the metafunction
-// TODO: this concept is not very well-posed; we need a better way to check
-// that every argument we intend to pass to the quoted function is valid. im
-// not rlly sure there is a good way to determine a 'valid' result, since any
-// type is technically valid. all we need to check is that fn is a template
-// member of T, that yields a type. think about it some more bc this may be
-// what we have now... idk
-// TODO: i arbitrarily use 'int' as the fn<> parameter since this will make
-// sure fn<> can accept exactly one parameter (i think). this will give strange
-// error messages if user supplies a non-conforming type, which is bad for the
-// user experience
-template <typename T>
-concept quoted_metafunction = requires { typename T::template fn<int>; };
-
 template <typename T, typename Arg1, typename Arg2>
 concept BinaryPredicateFor = requires {
     { T::template invoke<Arg1, Arg2>::value } -> std::convertible_to<bool>;
+};
+
+template <auto T, typename Arg1, typename Arg2>
+concept BinaryPredicateObjectFor = requires {
+    { T.template operator()<Arg1, Arg2>() } -> std::convertible_to<bool>;
 };
 
 // TODO: i want to write a 'concept comparator_metafunction_for', but im not

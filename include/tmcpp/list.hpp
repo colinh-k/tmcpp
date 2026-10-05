@@ -20,14 +20,6 @@ template <typename... Types> struct list
     // std::tuple_element_t<I, T> externally; better syntax for the user
     template <std::size_t I>
     using at = std::tuple_element_t<I, std::tuple<Types...>>;
-
-    // TODO: idk if this is rlly needed
-    template <typename T>
-    consteval static auto
-    contains()
-    {
-        return std::disjunction<std::is_same<T, Types>...>::value;
-    }
 };
 
 };  // namespace tmcpp

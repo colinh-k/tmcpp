@@ -68,6 +68,36 @@ TEST(list, size)
     static_assert(L::size == 3);
 }
 
+TEST(rename, list_to_tuple_simple)
+{
+    using list = tmcpp::list<bool, float, int>;
+
+    using expected = std::tuple<bool, float, int>;
+    using actual = tmcpp::rename<list, std::tuple>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(rename, tuple_to_list_simple)
+{
+    using tuple = std::tuple<bool, float, int>;
+
+    using expected = tmcpp::list<bool, float, int>;
+    using actual = tmcpp::rename<tuple, tmcpp::list>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(rename, list_to_tuple_empty)
+{
+    using list = tmcpp::list<>;
+
+    using expected = std::tuple<>;
+    using actual = tmcpp::rename<list, std::tuple>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 TEST(algorithm, concatenate)
 {
     using L1 = tmcpp::list<int, bool, double>;
@@ -365,7 +395,7 @@ TEST(algorithm, remove_duplicates_simple)
 {
     using L = tmcpp::list<int, double, int, bool, bool>;
 
-    using expected = tmcpp::list<double, int, bool>;
+    using expected = tmcpp::list<int, double, bool>;
     using actual = tmcpp::remove_duplicates<L>;
 
     static_assert(std::is_same_v<actual, expected>);
