@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  # enables this workflow to be run manually via github's web ui
+  workflow_dispatch:
 
 jobs:
   cmake-preset-workflows:
