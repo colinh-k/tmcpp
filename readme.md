@@ -55,6 +55,8 @@ using my_list = tmcpp::list<int, bool, double>;
 
 - [ ] configure `cmake` to check that certain c++ feature macros are defined for all the features this library requires. throw an error if the user did not configure the project with the expected language features, and print an error message
 
+- [ ] breaking change: remove the current non-`_with` algorithm implementations and replace them with the `_with` versions. ive found it more convenient to pass lambdas/metafunction objects by value instead of types. additionally, we should reorder the arguments to make the list argument(s) come first, then passing metafunctions for the algorithms that require comparators/predicates/etc. this ordering follows the stl's algorithms, where the container comes before the function
+
 ## BUGS
 
 - [`clang` bug] there is an issue with `clang` outlined in [this](https://github.com/llvm/llvm-project/issues/178860) issue. the following example compiles on `gcc` but `clang` rejects it:
