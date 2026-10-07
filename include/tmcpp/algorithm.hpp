@@ -7,17 +7,6 @@
 #include <type_traits>
 #include <utility>
 
-// NOTE: the algorithms ending in _with (eg transform_with vs transform)
-// perform the same operation as their other counterparts, except they take the
-// metafunction template argument as an nttp. we must introduce a new name
-// since type aliases do not participate in overload resolution. this leads to
-// awkward names like find_index_if_with
-
-// TODO: the algorithms should NOT return void to indicate a null/empty return
-// value, since perhaps the user wants (eg) find_if<IsVoidPredicate,
-// ListWithVoid> to return the first instance of void in a given list. maybe
-// create a 'not found' type which can be returned instead
-
 namespace tmcpp
 {
 
@@ -26,9 +15,6 @@ namespace tmcpp
 // in a std::integral_constant<> in order to use the algorithms here. find out
 // if it is possible to allow passing metafunctions (to algorithms such as
 // find_type_if<>) which accept nttp, which would simplify user code
-
-// TODO: i should add requires clauses/concepts to each template parameter
-// where appropriate for better error messages
 
 // type returned by search algorithms when no satisfactory types were found.
 // note that void cannot be used since the caller may want to search for a void
@@ -75,7 +61,7 @@ using append_if_unique = std::invoke_result_t<
                      List,
                      list<Ts..., U>>
              // TODO: clang crashes if this requires clause is un-commented:
-             // requires(BinaryPredicateFor<Comparator, Ts, U>
+             // requires (BinaryTypePredicateFor<Comparator, Ts, U>
              // and ... and true)
              {}),
     List>;
@@ -94,10 +80,7 @@ using append_if_unique = std::invoke_result_t<
 // TODO: make a concept that checks the Comparator is valid for all
 // pairs/combinations of types in the list
 //
-// nttp version
-//
-// TODO: this and the regular version both dont have concepts constraining the
-// template args. we need a concept to check that all combinations/pairs of
+// TODO: we need a concept to check that all combinations/pairs of
 // types in the list are valid for the comparator (or at least all the pairs we
 // are going to check in the body). additionally, it seems clang crashes when
 // we try to constrain the lambda in the decltype().
@@ -139,7 +122,7 @@ using remove_duplicates
 // NOTE:must have different name than 'transform' since type aliases
 // do not participate in overload resolution, sadly
 template <auto Fn, ListLike List>
-    requires(UnaryMetafunctionObjectForList<Fn, List>)
+    requires UnaryTypeFunctionForList<Fn, List>
 using transform = std::invoke_result_t<
     decltype([]<typename... Types>(list<Types...>)
                  -> list<decltype(Fn.template operator()<Types>())...> {}),
@@ -162,7 +145,7 @@ using front_or = std::invoke_result_t<decltype([]{
 //
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(UnaryPredicateObjectForList<Predicate, List>)
+    requires UnaryTypePredicateForList<Predicate, List>
 using filter = std::invoke_result_t<
     decltype([]<typename... Ts>(list<Ts...>)
                  ->concatenate<
@@ -180,7 +163,7 @@ using filter = std::invoke_result_t<
 //
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(UnaryPredicateObjectForList<Predicate, List>)
+    requires UnaryTypePredicateForList<Predicate, List>
 using find_if = front_or<filter<Predicate, List>, not_found>;
 
 // returns a list<> of std::integral_constant<std::size_t, I> where each I is
@@ -195,7 +178,7 @@ using find_if = front_or<filter<Predicate, List>, not_found>;
 //
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(UnaryPredicateObjectForList<Predicate, List>)
+    requires UnaryTypePredicateForList<Predicate, List>
 using filter_index = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
@@ -212,7 +195,7 @@ using filter_index = std::invoke_result_t<
 //
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(UnaryPredicateObjectForList<Predicate, List>)
+    requires UnaryTypePredicateForList<Predicate, List>
 using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
 
 };  // namespace tmcpp

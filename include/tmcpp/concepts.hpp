@@ -20,10 +20,14 @@ concept TemplateOf
                            }),
                            T>::value;
 
+// a callable which accepts any number of types as template parameters and
+// returns a type. only the return type is used in algorithms
 template <auto T, typename... Args>
-concept MetafunctionObjectFor = requires { T.template operator()<Args...>(); };
+concept TypeFunctionFor = requires { T.template operator()<Args...>(); };
 
-// TODO: note that passing an invalid metafunction object with an empty list
+// T must be a callable that accepts a single type argument and returns a type.
+// it must be compatible with every type in the given list
+// TODO: note that passing an invalid function object with an empty list
 // will NOT be caught by this concept. the issue is that the pack expansion
 // would be empty, so anything passed as T would succeed. but there still might
 // be a poor-quality compile error later on when the illegal T is used in the
@@ -31,33 +35,33 @@ concept MetafunctionObjectFor = requires { T.template operator()<Args...>(); };
 // List to be nonempty. however, for some algorithms like transform, it is
 // perfectly valid to transform an empty list (the result is just an empty
 // list), so we cannot constrain List to be nonempty here.
-// the same issue exists for other concepts like UnaryMetafunctionForList
+// the same issue exists for other concepts
 // NOTE: to save us from bad template errors later, im going to enforce
 // nonempty list for now
 template <auto T, typename List>
-concept UnaryMetafunctionObjectForList
+concept UnaryTypeFunctionForList
     = ListLike<List> and not tmcpp::is_empty_v<List>
       and ([]<typename... Us>(list<Us...>)
-           { return (MetafunctionObjectFor<T, Us> and ...); }(List{}));
+           { return (TypeFunctionFor<T, Us> and ...); }(List{}));
 
-// a type with a templated call operator that returns bool. useful to constrain
-// algorithms that accept predicates
+// T must be a callable that accepts a single type argument and returns bool.
+// useful to constrain algorithms that accept predicates
 template <auto T, typename Arg>
-concept UnaryPredicateObjectFor = requires {
+concept UnaryTypePredicateFor = requires {
     { T.template operator()<Arg>() } -> std::convertible_to<bool>;
 };
 
-// for convenience if the predicate arguments are already in a list-like
-// structure
+// T must be a unary type predicate compatible with each type in the list
 template <auto T, typename List>
-concept UnaryPredicateObjectForList
+concept UnaryTypePredicateForList
     = ListLike<List> and not tmcpp::is_empty_v<List>
       and ([]<typename... Us>(list<Us...>)
-           { return (UnaryPredicateObjectFor<T, Us> and ... and true); }(
+           { return (UnaryTypePredicateFor<T, Us> and ... and true); }(
                List{}));
 
+// similar to above except T's call operator must accept exactly 2 arguments
 template <auto T, typename Arg1, typename Arg2>
-concept BinaryPredicateObjectFor = requires {
+concept BinaryTypePredicateFor = requires {
     { T.template operator()<Arg1, Arg2>() } -> std::convertible_to<bool>;
 };
 
