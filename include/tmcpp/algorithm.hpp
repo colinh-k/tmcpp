@@ -68,7 +68,7 @@ using concatenate = std::remove_cvref_t<decltype((std::declval<Lists>() + ...
 // types in the list are valid for the comparator (or at least all the pairs we
 // are going to check in the body). additionally, it seems clang crashes when
 // we try to constrain the lambda in the decltype().
-template <auto Comparator, ListLike List>
+template <ListLike List, auto Comparator>
 using remove_duplicates_if = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
@@ -91,9 +91,9 @@ using remove_duplicates_if = std::invoke_result_t<
 // for convenience. elements are unique based on type
 template <ListLike List>
 using remove_duplicates
-    = remove_duplicates_if<[]<typename T, typename U>
-                           { return std::is_same_v<T, U>; },
-                           List>;
+    = remove_duplicates_if<List,
+                           []<typename T, typename U>
+                           { return std::is_same_v<T, U>; }>;
 
 // returns a list<> where each element is the corresponding element in List
 // after having Fn applied to it, using the library's definition of
@@ -105,7 +105,7 @@ using remove_duplicates
 //
 // NOTE:must have different name than 'transform' since type aliases
 // do not participate in overload resolution, sadly
-template <auto Fn, ListLike List>
+template <ListLike List, auto Fn>
     requires UnaryTypeFunctionForList<Fn, List>
 using transform = std::invoke_result_t<
     decltype([]<typename... Types>(list<Types...>)
@@ -128,7 +128,7 @@ using front_or = std::invoke_result_t<decltype([]{
 // yields a list<> containing all types in List which satisfy Predicate
 //
 // nttp version
-template <auto Predicate, ListLike List>
+template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
 using filter = std::invoke_result_t<
     decltype([]<typename... Ts>(list<Ts...>)
@@ -146,9 +146,9 @@ using filter = std::invoke_result_t<
 // make a special case to check not_found
 //
 // nttp version
-template <auto Predicate, ListLike List>
+template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
-using find_if = front_or<filter<Predicate, List>, not_found>;
+using find_if = front_or<filter<List, Predicate>, not_found>;
 
 // returns a list<> of std::integral_constant<std::size_t, I> where each I is
 // an index into List such that the type at that index satisfies the predicate
@@ -161,7 +161,7 @@ using find_if = front_or<filter<Predicate, List>, not_found>;
 // at<I>, but thats a lil more verbose
 //
 // nttp version
-template <auto Predicate, ListLike List>
+template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
 using filter_index = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
@@ -176,11 +176,9 @@ using filter_index = std::invoke_result_t<
 // returns std::integral_constant<std::size_t, I> where I is the first index of
 // the list containing a type satisfying the predicate. returns not_found if no
 // such type exists in the list
-//
-// nttp version
-template <auto Predicate, ListLike List>
+template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
-using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
+using find_index_if = front_or<filter_index<List, Predicate>, not_found>;
 
 };  // namespace tmcpp
 

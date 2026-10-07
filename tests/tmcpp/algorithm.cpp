@@ -98,13 +98,6 @@ TEST(front_or, empty_with_void_default)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-template <typename A, typename B> using Equivalent = std::is_same<A, B>;
-
-template <typename T> struct type_equal_to
-{
-    template <typename U> using invoke = std::is_same<T, U>;
-};
-
 #if 0
 TEST(filter, empty)
 {
@@ -123,8 +116,8 @@ TEST(filter, lambda_simple)
 
     using expected = tmcpp::list<bool, bool, bool>;
     // finds all types in the list that are bool
-    using actual = tmcpp::filter<[]<typename T>
-                                 { return std::is_same_v<T, bool>; }, list>;
+    using actual = tmcpp::filter<list, []<typename T>
+                                 { return std::is_same_v<T, bool>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -134,8 +127,8 @@ TEST(find_if, simple_lambda)
     using list = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = bool;
-    using actual = tmcpp::find_if<[]<typename T>
-                                  { return std::is_same_v<T, bool>; }, list>;
+    using actual = tmcpp::find_if<list, []<typename T>
+                                  { return std::is_same_v<T, bool>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -145,9 +138,8 @@ TEST(find_if, none)
     using list = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = tmcpp::not_found;
-    using actual
-        = tmcpp::find_if<[]<typename T>
-                         { return std::is_same_v<T, unsigned>; }, list>;
+    using actual = tmcpp::find_if<list, []<typename T>
+                                  { return std::is_same_v<T, unsigned>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -159,9 +151,8 @@ TEST(filter_index, simple_lambda)
 
     using expected = tmcpp::list<std::integral_constant<std::size_t, 1>,
                                  std::integral_constant<std::size_t, 3>>;
-    using actual
-        = tmcpp::filter_index<[]<typename T>
-                              { return std::is_same_v<T, bool>; }, list>;
+    using actual = tmcpp::filter_index<list, []<typename T>
+                                       { return std::is_same_v<T, bool>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -172,8 +163,8 @@ TEST(filter_index, returns_empty_list_if_no_types_satisfy_predicate)
 
     using expected = tmcpp::list<>;
     using actual
-        = tmcpp::filter_index<[]<typename T>
-                              { return std::is_same_v<T, unsigned>; }, L>;
+        = tmcpp::filter_index<L, []<typename T>
+                              { return std::is_same_v<T, unsigned>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -183,9 +174,8 @@ TEST(find_index_if, simple_lambda)
     using list = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = std::integral_constant<std::size_t, 2>;
-    using actual
-        = tmcpp::find_index_if<[]<typename T>
-                               { return std::is_same_v<T, double>; }, list>;
+    using actual = tmcpp::find_index_if<list, []<typename T>
+                                        { return std::is_same_v<T, double>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -196,8 +186,8 @@ TEST(find_index_if, not_found)
 
     using expected = tmcpp::not_found;
     using actual
-        = tmcpp::find_index_if<[]<typename T>
-                               { return std::is_same_v<T, unsigned>; }, L>;
+        = tmcpp::find_index_if<L, []<typename T>
+                               { return std::is_same_v<T, unsigned>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -207,7 +197,7 @@ TEST(transform, simple_lambda)
     using List = tmcpp::list<int, double, float, bool, unsigned>;
 
     using expected = tmcpp::list<int *, double *, float *, bool *, unsigned *>;
-    using actual = tmcpp::transform<[]<typename T> -> T * {}, List>;
+    using actual = tmcpp::transform<List, []<typename T> -> T * {}>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
