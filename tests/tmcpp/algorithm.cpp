@@ -68,7 +68,7 @@ TEST(concatenate, with_no_lists)
     static_assert(std::is_same_v<Actual, Expected>);
 }
 
-TEST(algorithm, front_or_non_empty)
+TEST(front_or, non_empty)
 {
     using L = tmcpp::list<double, float, int>;
 
@@ -78,7 +78,7 @@ TEST(algorithm, front_or_non_empty)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, front_or_empty)
+TEST(front_or, empty)
 {
     using L = tmcpp::list<>;
 
@@ -88,7 +88,7 @@ TEST(algorithm, front_or_empty)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, front_or_empty_with_void_default)
+TEST(front_or, empty_with_void_default)
 {
     using L = tmcpp::list<>;
 
@@ -105,7 +105,7 @@ template <typename T> struct type_equal_to
     template <typename U> using invoke = std::is_same<T, U>;
 };
 
-TEST(algorithm, filter_simple)
+TEST(filter, simple)
 {
     using L = tmcpp::list<int, double, bool, float, bool, bool>;
 
@@ -116,7 +116,7 @@ TEST(algorithm, filter_simple)
 }
 
 #if 0
-TEST(algorithm, filter_empty)
+TEST(filter, empty)
 {
     using L = tmcpp::list<>;
 
@@ -127,7 +127,7 @@ TEST(algorithm, filter_empty)
 }
 #endif
 
-TEST(algorithm, filter_with_lambda_simple)
+TEST(filter_with, lambda_simple)
 {
     using list = tmcpp::list<bool, int, double, bool, float, bool>;
 
@@ -140,7 +140,7 @@ TEST(algorithm, filter_with_lambda_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_if_simple)
+TEST(find_if, simple)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -150,7 +150,7 @@ TEST(algorithm, find_if_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_if_none)
+TEST(find_if, none)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -160,7 +160,7 @@ TEST(algorithm, find_if_none)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_if_with_simple_lambda)
+TEST(find_if_with, simple_lambda)
 {
     using list = tmcpp::list<int, bool, double, bool, float>;
 
@@ -172,7 +172,7 @@ TEST(algorithm, find_if_with_simple_lambda)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_if_with_none)
+TEST(find_if_with, none)
 {
     using list = tmcpp::list<int, bool, double, bool, float>;
 
@@ -185,7 +185,7 @@ TEST(algorithm, find_if_with_none)
 }
 
 // TODO: add more tests for *_index algorithms
-TEST(algorithm, filter_index_simple)
+TEST(filter_index, simple)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -196,7 +196,7 @@ TEST(algorithm, filter_index_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, filter_index_returns_empty_list_if_no_types_satisfy_predicate)
+TEST(filter_index, returns_empty_list_if_no_types_satisfy_predicate)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -206,7 +206,7 @@ TEST(algorithm, filter_index_returns_empty_list_if_no_types_satisfy_predicate)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, filter_index_with_simple_lambda)
+TEST(filter_index_with, simple_lambda)
 {
     using list = tmcpp::list<int, bool, double, bool, float>;
 
@@ -219,7 +219,7 @@ TEST(algorithm, filter_index_with_simple_lambda)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_index_if_simple)
+TEST(find_index_if, simple)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -229,7 +229,7 @@ TEST(algorithm, find_index_if_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_index_if_not_found)
+TEST(find_index_if, not_found)
 {
     using L = tmcpp::list<int, bool, double, bool, float>;
 
@@ -239,7 +239,7 @@ TEST(algorithm, find_index_if_not_found)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, find_index_if_with_simple_lambda)
+TEST(find_index_if_with, simple_lambda)
 {
     using list = tmcpp::list<int, bool, double, bool, float>;
 
@@ -255,7 +255,7 @@ struct add_pointer
     template <typename T> using invoke = T *;
 };
 
-TEST(algorithm, transform)
+TEST(transform, simple)
 {
     using L = tmcpp::list<int, double, float, bool>;
 
@@ -265,7 +265,7 @@ TEST(algorithm, transform)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, transform_with_lambda)
+TEST(transform_with, simple_lambda)
 {
     using List = tmcpp::list<int, double, float, bool, unsigned>;
 
@@ -294,7 +294,7 @@ struct type_comparator
     template <typename T, typename U> using invoke = std::is_same<T, U>;
 };
 
-TEST(algorithm, append_if_unique_appends_if_type_not_in_list_already)
+TEST(append_if_unique, appends_if_type_not_in_list_already)
 {
     using L = tmcpp::list<int>;
 
@@ -304,7 +304,7 @@ TEST(algorithm, append_if_unique_appends_if_type_not_in_list_already)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, append_if_unique_does_not_append_if_type_in_list_already)
+TEST(append_if_unique, does_not_append_if_type_in_list_already)
 {
     using L = tmcpp::list<int>;
 
@@ -314,7 +314,7 @@ TEST(algorithm, append_if_unique_does_not_append_if_type_in_list_already)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, append_if_unique_on_empty_list)
+TEST(append_if_unique, on_empty_list)
 {
     using L = tmcpp::list<>;
 
@@ -328,7 +328,7 @@ TEST(algorithm, append_if_unique_on_empty_list)
 // of a type, so we check for that here. if we change the implmentation later
 // to keep the FIRST instance of a type, we will need to refactor the expected
 // lists
-TEST(algorithm, remove_duplicates_simple)
+TEST(remove_duplicates, simple)
 {
     using L = tmcpp::list<int, double, int, bool, bool>;
 
@@ -338,7 +338,7 @@ TEST(algorithm, remove_duplicates_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, remove_duplicates_empty)
+TEST(remove_duplicates, empty)
 {
     using L = tmcpp::list<>;
 
