@@ -21,7 +21,7 @@ template <std::size_t N> struct consteval_string
     }
 
     template <std::size_t M>
-    consteval auto
+    [[nodiscard]] consteval auto
     operator==(const consteval_string<M> &other) const
     {
         // NOTE: we must use 'if constexpr' (instead of a single, compound

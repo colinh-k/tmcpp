@@ -1,7 +1,6 @@
 #pragma once
 
 #include <tuple>
-#include <type_traits>
 
 namespace tmcpp
 {
@@ -13,11 +12,6 @@ template <typename... Types> struct list
 
     // NOTE: users might have to write 'typename List::template at<INDEX>',
     // which is a little verbose.
-    // TODO: consider converting this to a function so a user can write
-    // 'List::at<INDEX>()' which is a little nicer syntax
-    // TODO: (update to above); a consteval function cannot return a type, so
-    // an alternative would be to define tmcpp::at<I, L> like
-    // std::tuple_element_t<I, T> externally; better syntax for the user
     template <std::size_t I>
     using at = std::tuple_element_t<I, std::tuple<Types...>>;
 };

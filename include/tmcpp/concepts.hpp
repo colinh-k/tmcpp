@@ -11,9 +11,9 @@ namespace tmcpp
 namespace concepts
 {
 
-// constrains T to be a template type matching TargetT, but T and TargetT may
+// constrains T to be a template type matching Template, but T and Template may
 // have different template arguments
-// eg is_template_of<std::tuple<int, float>, std::tuple> is legal
+// eg TemplateOf<std::tuple<int, float>, std::tuple> is legal
 template <typename T, template <typename...> typename Template>
 concept TemplateOf
     = std::invoke_result_t<decltype(multilambda{
