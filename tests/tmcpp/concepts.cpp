@@ -1,6 +1,4 @@
 #include "tmcpp/concepts.hpp"
-#include "tmcpp/algorithm.hpp"
-#include "tmcpp/tmcpp.hpp"
 
 #include <gtest/gtest.h>
 

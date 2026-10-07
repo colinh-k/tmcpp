@@ -3,7 +3,6 @@
 #include "tmcpp/concepts.hpp"
 #include "tmcpp/list.hpp"
 
-#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -97,11 +96,7 @@ using remove_duplicates
 
 // returns a list<> where each element is the corresponding element in List
 // after having Fn applied to it, using the library's definition of
-// 'metafunction application'
-//
-// nttp version. allows defining a template metafunction as a lambda inline
-// instead of pre-defining a metafunction struct/class with an 'invoke' member
-// outside the call site's scope
+// 'type function application'
 //
 // NOTE:must have different name than 'transform' since type aliases
 // do not participate in overload resolution, sadly
@@ -126,8 +121,6 @@ using front_or = std::invoke_result_t<decltype([]{
 })>;
 
 // yields a list<> containing all types in List which satisfy Predicate
-//
-// nttp version
 template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
 using filter = std::invoke_result_t<
@@ -144,8 +137,6 @@ using filter = std::invoke_result_t<
 // types that satisfy the predicate (instead of not_found). this might make it
 // easier to chain algorithms using the result of find_if<>, without needing to
 // make a special case to check not_found
-//
-// nttp version
 template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
 using find_if = front_or<filter<List, Predicate>, not_found>;
@@ -157,10 +148,8 @@ using find_if = front_or<filter<List, Predicate>, not_found>;
 // implement one of these algorithms in terms of the other ?
 // TODO: currently, the lambda takes 2 parameters since that makes it easier to
 // access the List types; however, its probably possible to just take the index
-// parameter and access the elements of the list via typename List::template
-// at<I>, but thats a lil more verbose
-//
-// nttp version
+// parameter and access the elements of the list via tmcpp::at<I>, but thats a
+// lil more verbose
 template <ListLike List, auto Predicate>
     requires UnaryTypePredicateForList<Predicate, List>
 using filter_index = std::invoke_result_t<
@@ -181,14 +170,3 @@ template <ListLike List, auto Predicate>
 using find_index_if = front_or<filter_index<List, Predicate>, not_found>;
 
 };  // namespace tmcpp
-
-#if 0
-fundamental algorithms:
-
-transform
-filter
-concat
-front
-front_or
-empty
-#endif

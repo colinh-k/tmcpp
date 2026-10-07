@@ -1,8 +1,6 @@
 #include "tmcpp/algorithm.hpp"
-#include "tmcpp/tmcpp.hpp"
 
 #include <gtest/gtest.h>
-
 #include <type_traits>
 
 TEST(rename, list_to_tuple_simple)
