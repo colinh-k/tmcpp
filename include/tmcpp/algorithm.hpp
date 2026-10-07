@@ -41,12 +41,11 @@ struct not_found final
 // for convenience
 template <typename T> using is_not_found = std::is_same<T, not_found>;
 template <typename T> constexpr auto is_not_found_v = is_not_found<T>::value;
-
 //
 
 // renames a template type containing some type parameters Ts into another
 // template type containing Ts
-template <typename From, template <typename...> typename To>
+template <ListLike From, template <typename...> typename To>
 using rename = std::invoke_result_t<
     decltype([]<template <typename...> typename FromTemplate, typename... Ts>(
                  FromTemplate<Ts...>) -> To<Ts...> {}),
@@ -94,26 +93,7 @@ using append_if_unique = std::invoke_result_t<
 //
 // TODO: make a concept that checks the Comparator is valid for all
 // pairs/combinations of types in the list
-template <typename Comparator, ListLike List>
-using remove_duplicates_if = std::invoke_result_t<
-    decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
-                                                  list<Ts...>)
-                 -> concatenate<std::conditional_t<
-                     []<std::size_t... J>(std::index_sequence<J...>)
-                     {
-                         // we use an alias here since using Ts directly will
-                         // prematurely expand it with the nearest '...'
-                         // operator
-                         using T = Ts;
-                         return (
-                             Comparator::template invoke<T, at<J, List>>::value
-                             or ...);
-                     }(std::make_index_sequence<I>{}),
-                     list<>,
-                     list<at<I, List>>>...> {}),
-    std::make_index_sequence<size_v<List>>,
-    List>;
-
+//
 // nttp version
 //
 // TODO: this and the regular version both dont have concepts constraining the
@@ -122,7 +102,7 @@ using remove_duplicates_if = std::invoke_result_t<
 // are going to check in the body). additionally, it seems clang crashes when
 // we try to constrain the lambda in the decltype().
 template <auto Comparator, ListLike List>
-using remove_duplicates_if_with = std::invoke_result_t<
+using remove_duplicates_if = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
                  -> concatenate<std::conditional_t<
@@ -144,20 +124,14 @@ using remove_duplicates_if_with = std::invoke_result_t<
 // for convenience. elements are unique based on type
 template <ListLike List>
 using remove_duplicates
-    = remove_duplicates_if_with<[]<typename T, typename U>
-                                { return std::is_same_v<T, U>; },
-                                List>;
+    = remove_duplicates_if<[]<typename T, typename U>
+                           { return std::is_same_v<T, U>; },
+                           List>;
 
 // returns a list<> where each element is the corresponding element in List
 // after having Fn applied to it, using the library's definition of
 // 'metafunction application'
-template <typename Fn, ListLike List>
-    requires(UnaryMetafunctionForList<Fn, List>)
-using transform = std::invoke_result_t<
-    decltype([]<typename... Types>(list<Types...>)
-                 -> list<typename Fn::template invoke<Types>...> {}),
-    List>;
-
+//
 // nttp version. allows defining a template metafunction as a lambda inline
 // instead of pre-defining a metafunction struct/class with an 'invoke' member
 // outside the call site's scope
@@ -166,7 +140,7 @@ using transform = std::invoke_result_t<
 // do not participate in overload resolution, sadly
 template <auto Fn, ListLike List>
     requires(UnaryMetafunctionObjectForList<Fn, List>)
-using transform_with = std::invoke_result_t<
+using transform = std::invoke_result_t<
     decltype([]<typename... Types>(list<Types...>)
                  -> list<decltype(Fn.template operator()<Types>())...> {}),
     List>;
@@ -185,20 +159,11 @@ using front_or = std::invoke_result_t<decltype([]{
 })>;
 
 // yields a list<> containing all types in List which satisfy Predicate
-template <typename Predicate, ListLike List>
-    requires(UnaryPredicateForList<Predicate, List>)
-using filter = std::invoke_result_t<
-    decltype([]<typename... Ts>(list<Ts...>)
-                 -> concatenate<
-                     std::conditional_t<Predicate::template invoke<Ts>::value,
-                                        list<Ts>,
-                                        list<>>...> {}),
-    List>;
-
+//
 // nttp version
 template <auto Predicate, ListLike List>
     requires(UnaryPredicateObjectForList<Predicate, List>)
-using filter_with = std::invoke_result_t<
+using filter = std::invoke_result_t<
     decltype([]<typename... Ts>(list<Ts...>)
                  ->concatenate<
                      std::conditional_t<Predicate.template operator()<Ts>(),
@@ -212,14 +177,11 @@ using filter_with = std::invoke_result_t<
 // types that satisfy the predicate (instead of not_found). this might make it
 // easier to chain algorithms using the result of find_if<>, without needing to
 // make a special case to check not_found
-template <typename Predicate, ListLike List>
-    requires(UnaryPredicateForList<Predicate, List>)
-using find_if = front_or<filter<Predicate, List>, not_found>;
-
+//
 // nttp version
 template <auto Predicate, ListLike List>
     requires(UnaryPredicateObjectForList<Predicate, List>)
-using find_if_with = front_or<filter_with<Predicate, List>, not_found>;
+using find_if = front_or<filter<Predicate, List>, not_found>;
 
 // returns a list<> of std::integral_constant<std::size_t, I> where each I is
 // an index into List such that the type at that index satisfies the predicate
@@ -230,22 +192,11 @@ using find_if_with = front_or<filter_with<Predicate, List>, not_found>;
 // access the List types; however, its probably possible to just take the index
 // parameter and access the elements of the list via typename List::template
 // at<I>, but thats a lil more verbose
-template <typename Predicate, ListLike List>
-    requires(UnaryPredicateForList<Predicate, List>)
-using filter_index = std::invoke_result_t<
-    decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
-                                                  list<Ts...>)
-                 -> concatenate<std::conditional_t<
-                     Predicate::template invoke<Ts>::value,
-                     list<std::integral_constant<std::size_t, I>>,
-                     list<>>...> {}),
-    std::make_index_sequence<size_v<List>>,
-    List>;
-
+//
 // nttp version
 template <auto Predicate, ListLike List>
     requires(UnaryPredicateObjectForList<Predicate, List>)
-using filter_index_with = std::invoke_result_t<
+using filter_index = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
                  ->concatenate<std::conditional_t<
@@ -258,22 +209,11 @@ using filter_index_with = std::invoke_result_t<
 // returns std::integral_constant<std::size_t, I> where I is the first index of
 // the list containing a type satisfying the predicate. returns not_found if no
 // such type exists in the list
-template <typename Predicate, ListLike List>
-    requires(UnaryPredicateForList<Predicate, List>)
-using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
-
+//
 // nttp version
 template <auto Predicate, ListLike List>
     requires(UnaryPredicateObjectForList<Predicate, List>)
-using find_index_if_with
-    = front_or<filter_index_with<Predicate, List>, not_found>;
-
-// turns a non-quoted metafunction into a quoted metafunction suitable to be
-// passed to invoke<>. mainly for convenience
-template <template <typename...> typename Fn> struct quote
-{
-    template <typename... ArgsT> using fn = Fn<ArgsT...>;
-};
+using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
 
 };  // namespace tmcpp
 

@@ -1,5 +1,5 @@
-#include "tmcpp/tmcpp.hpp"
 #include "tmcpp/algorithm.hpp"
+#include "tmcpp/tmcpp.hpp"
 
 #include <gtest/gtest.h>
 
@@ -105,16 +105,6 @@ template <typename T> struct type_equal_to
     template <typename U> using invoke = std::is_same<T, U>;
 };
 
-TEST(filter, simple)
-{
-    using L = tmcpp::list<int, double, bool, float, bool, bool>;
-
-    using expected = tmcpp::list<bool, bool, bool>;
-    using actual = tmcpp::filter<type_equal_to<bool>, L>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
 #if 0
 TEST(filter, empty)
 {
@@ -127,71 +117,51 @@ TEST(filter, empty)
 }
 #endif
 
-TEST(filter_with, lambda_simple)
+TEST(filter, lambda_simple)
 {
     using list = tmcpp::list<bool, int, double, bool, float, bool>;
 
     using expected = tmcpp::list<bool, bool, bool>;
     // finds all types in the list that are bool
-    using actual
-        = tmcpp::filter_with<[]<typename T>
-                             { return std::is_same_v<T, bool>; }, list>;
+    using actual = tmcpp::filter<[]<typename T>
+                                 { return std::is_same_v<T, bool>; }, list>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(find_if, simple)
+TEST(find_if, simple_lambda)
 {
-    using L = tmcpp::list<int, bool, double, bool, float>;
+    using list = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = bool;
-    using actual = tmcpp::find_if<type_equal_to<bool>, L>;
+    using actual = tmcpp::find_if<[]<typename T>
+                                  { return std::is_same_v<T, bool>; }, list>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
 
 TEST(find_if, none)
 {
-    using L = tmcpp::list<int, bool, double, bool, float>;
-
-    using expected = tmcpp::not_found;
-    using actual = tmcpp::find_if<type_equal_to<unsigned>, L>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(find_if_with, simple_lambda)
-{
-    using list = tmcpp::list<int, bool, double, bool, float>;
-
-    using expected = bool;
-    using actual
-        = tmcpp::find_if_with<[]<typename T>
-                              { return std::is_same_v<T, bool>; }, list>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(find_if_with, none)
-{
     using list = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = tmcpp::not_found;
     using actual
-        = tmcpp::find_if_with<[]<typename T>
-                              { return std::is_same_v<T, unsigned>; }, list>;
+        = tmcpp::find_if<[]<typename T>
+                         { return std::is_same_v<T, unsigned>; }, list>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
 
 // TODO: add more tests for *_index algorithms
-TEST(filter_index, simple)
+TEST(filter_index, simple_lambda)
 {
-    using L = tmcpp::list<int, bool, double, bool, float>;
+    using list = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = tmcpp::list<std::integral_constant<std::size_t, 1>,
                                  std::integral_constant<std::size_t, 3>>;
-    using actual = tmcpp::filter_index<type_equal_to<bool>, L>;
+    using actual
+        = tmcpp::filter_index<[]<typename T>
+                              { return std::is_same_v<T, bool>; }, list>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -201,30 +171,21 @@ TEST(filter_index, returns_empty_list_if_no_types_satisfy_predicate)
     using L = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = tmcpp::list<>;
-    using actual = tmcpp::filter_index<type_equal_to<unsigned>, L>;
+    using actual
+        = tmcpp::filter_index<[]<typename T>
+                              { return std::is_same_v<T, unsigned>; }, L>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(filter_index_with, simple_lambda)
+TEST(find_index_if, simple_lambda)
 {
     using list = tmcpp::list<int, bool, double, bool, float>;
 
-    using expected = tmcpp::list<std::integral_constant<std::size_t, 1>,
-                                 std::integral_constant<std::size_t, 3>>;
-    using actual
-        = tmcpp::filter_index_with<[]<typename T>
-                                   { return std::is_same_v<T, bool>; }, list>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(find_index_if, simple)
-{
-    using L = tmcpp::list<int, bool, double, bool, float>;
-
     using expected = std::integral_constant<std::size_t, 2>;
-    using actual = tmcpp::find_index_if<type_equal_to<double>, L>;
+    using actual
+        = tmcpp::find_index_if<[]<typename T>
+                               { return std::is_same_v<T, double>; }, list>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -234,56 +195,31 @@ TEST(find_index_if, not_found)
     using L = tmcpp::list<int, bool, double, bool, float>;
 
     using expected = tmcpp::not_found;
-    using actual = tmcpp::find_index_if<type_equal_to<unsigned>, L>;
+    using actual
+        = tmcpp::find_index_if<[]<typename T>
+                               { return std::is_same_v<T, unsigned>; }, L>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(find_index_if_with, simple_lambda)
-{
-    using list = tmcpp::list<int, bool, double, bool, float>;
-
-    using expected = std::integral_constant<std::size_t, 2>;
-    using actual = tmcpp::find_index_if_with<
-        []<typename T> { return std::is_same_v<T, double>; }, list>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-struct add_pointer
-{
-    template <typename T> using invoke = T *;
-};
-
-TEST(transform, simple)
-{
-    using L = tmcpp::list<int, double, float, bool>;
-
-    using expected = tmcpp::list<int *, double *, float *, bool *>;
-    using actual = tmcpp::transform<add_pointer, L>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(transform_with, simple_lambda)
+TEST(transform, simple_lambda)
 {
     using List = tmcpp::list<int, double, float, bool, unsigned>;
 
     using expected = tmcpp::list<int *, double *, float *, bool *, unsigned *>;
-    using actual = tmcpp::transform_with<[]<typename T> -> T * {}, List>;
+    using actual = tmcpp::transform<[]<typename T> -> T * {}, List>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
 
+// for now, we cant pass empty lists due to the concept constraint
 #if 0
-TEST(algorithm, transform_with_empty_list)
+TEST(transform, empty_list)
 {
     using List = tmcpp::list<>;
 
     using expected = tmcpp::list<>;
-    using actual = tmcpp::transform_with<[]<typename T> {}, List>;
-    // should be a compile error (invalid function object with empty list):
-    // using actual = tmcpp::transform_with<10, List>;
+    using actual = tmcpp::transform<[]<typename T> -> T * {}, List>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -347,174 +283,3 @@ TEST(remove_duplicates, empty)
 
     static_assert(std::is_same_v<actual, expected>);
 }
-
-// removing bind_front<> for now
-#if 0
-struct are_equal
-{
-    template <typename T, typename U> using invoke = std::is_same<T, U>;
-};
-
-TEST(mputils, bind_front)
-{
-    // using Types = std::tuple<float, double, bool, int, unsigned>;
-    using is_equal_to_int = tmcpp::bind_front<are_equal, int>;
-
-    static_assert(tmcpp::invoke<is_equal_to_int, int>::value);
-    static_assert(not tmcpp::invoke<is_equal_to_int, float>::value);
-}
-#endif
-
-#if 0
-
-
-
-TEST(mputils, find_type_if)
-{
-    using Types = tmcpp::list<float, bool, double, bool, int, unsigned, bool>;
-
-    using FoundInt = tmcpp::find_type_if<type_equal_to<int>, Types>;
-    static_assert(std::is_same_v<FoundInt, int>);
-
-    using FoundBool = tmcpp::find_type_if<type_equal_to<bool>, Types>;
-    static_assert(std::is_same_v<FoundBool, bool>);
-
-    using FoundLong = tmcpp::find_type_if<type_equal_to<long>, Types>;
-    static_assert(std::is_same_v<FoundLong, void>);
-}
-#endif
-
-#if 0
-
-//
-template <tmcpp::ConstexprString Label> struct HasLabelEqualTo
-{
-    template <typename LabeledT>
-    using fn = std::bool_constant<LabeledT::label == Label>;
-};
-
-// some arbitrary struct that has a label member
-template <tmcpp::ConstexprString Label> struct LabeledType
-{
-    static constexpr auto label = Label;
-};
-
-// this test represents how i intend to use these constructs in tmcpp
-TEST(mputils, find_type_if_using_constexpr_string_label)
-{
-    using namespace tmcpp::literals;
-
-    constexpr auto target_label = "target"_L;
-    // using TargetT
-    //     = std::integral_constant<decltype(target_label), target_label>;
-    // using HasLabelEqualToTarget
-    //     = tmcpp::bind_front<HasLabelEqualTo, TargetT>;
-
-    using List1T
-        = tmcpp::list<LabeledType<"one"_L>, LabeledType<"five"_L>,
-                      LabeledType<"target"_L>, LabeledType<"peanut"_L>>;
-    using List2T
-        = tmcpp::list<LabeledType<"one"_L>, LabeledType<"five"_L>,
-                      LabeledType<"target"_L>, LabeledType<"peanut"_L>,
-                      LabeledType<"target"_L>>;
-
-    using Found1T
-        = tmcpp::find_type_if<HasLabelEqualTo<target_label>::template fn,
-                              List1T>;
-    using Found2T
-        = tmcpp::find_type_if<HasLabelEqualTo<target_label>::template fn,
-                              List2T>;
-
-    static_assert(std::is_same_v<Found1T, LabeledType<target_label>>);
-    // static_assert(std::tuple_size_v<Found1T> == 1);
-    static_assert(std::is_same_v<Found2T, LabeledType<target_label>>);
-    // TODO: maybe another test in a list without the target; should return
-    // void type
-}
-
-
-
-template <typename A, typename B>
-using LabelComparator = std::bool_constant<A::label == B::label>;
-
-TEST(mputils, make_unique_tuple_if)
-{
-    using namespace tmcpp::literals;
-
-    using List1T
-        = tmcpp::list<LabeledType<"one"_L>, LabeledType<"five"_L>,
-                      LabeledType<"target"_L>, LabeledType<"peanut"_L>,
-                      LabeledType<"pistaccio"_L>>;
-    using List2T
-        = tmcpp::list<LabeledType<"one"_L>, LabeledType<"five"_L>,
-                      LabeledType<"target"_L>, LabeledType<"target"_L>,
-                      LabeledType<"peanut"_L>, LabeledType<"target"_L>,
-                      LabeledType<"target"_L>, LabeledType<"peanut"_L>>;
-
-    using List1UniqueT
-        = tmcpp::make_unique_typelist_if<LabelComparator, List1T>;
-    using List2UniqueT
-        = tmcpp::make_unique_typelist_if<LabelComparator, List2T>;
-
-    // NOTE: currently, we are not checking that the computed 'unique' lists
-    // contain the same types. currently, i am not interested in the order of
-    // the types, and i think the implementation potentially removes types from
-    // the front, so idk how to check for that here... this is good enough for
-    // now
-    static_assert(List1UniqueT::size == 5);
-    static_assert(List2UniqueT::size == 4);
-}
-
-template <typename Typelist>
-using TypesAreUniqueByLabel = std::bool_constant<
-    Typelist::size
-    == tmcpp::make_unique_typelist_if<LabelComparator, Typelist>::size>;
-
-// test if we can successfully write an algorithm to check if a typelist
-// contains unique types satisfying a predicate using mputils primitives
-TEST(mputils, check_if_typelist_has_unique_types_by_label)
-{
-    using namespace tmcpp::literals;
-
-    using List1T
-        = tmcpp::list<LabeledType<"one"_L>, LabeledType<"five"_L>,
-                      LabeledType<"target"_L>, LabeledType<"peanut"_L>,
-                      LabeledType<"pistaccio"_L>>;
-    using List2T
-        = tmcpp::list<LabeledType<"one"_L>, LabeledType<"five"_L>,
-                      LabeledType<"target"_L>, LabeledType<"target"_L>,
-                      LabeledType<"peanut"_L>, LabeledType<"target"_L>,
-                      LabeledType<"target"_L>, LabeledType<"peanut"_L>>;
-
-    static_assert(TypesAreUniqueByLabel<List1T>::value);
-    static_assert(not TypesAreUniqueByLabel<List2T>::value);
-}
-
-TEST(mputils, rename)
-{
-    using L = tmcpp::list<int, bool, double>;
-    using T = tmcpp::rename<L, std::tuple>;
-
-    using E = std::tuple<int, bool, double>;
-
-    static_assert(std::is_same_v<T, E>);
-}
-
-
-
-
-struct is_int_q
-{
-    template <typename T> using fn = std::is_same<T, int>;
-};
-
-TEST(mputils, find_type_if_q)
-{
-    using L = tmcpp::list<bool, double, float, int, long>;
-
-    using Actual = tmcpp::find_type_if_q<is_int_q, L>;
-
-    static_assert(std::is_same_v<Actual, int>);
-}
-
-#endif
