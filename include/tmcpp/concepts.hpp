@@ -20,19 +20,6 @@ concept TemplateOf
                            }),
                            T>::value;
 
-// metafunctions must define a template alias member 'invoke', and must accept
-// any arity of arguments Args
-template <typename T, typename... Args>
-concept MetafunctionFor = requires { typename T::template invoke<Args...>; };
-
-// checks that T can be invoked with all types in List, one-at-a-time
-template <typename T, typename List>
-concept UnaryMetafunctionForList
-    = ListLike<List> and not tmcpp::is_empty_v<List>
-      and ([]<typename... Us>(list<Us...>)
-           { return (MetafunctionFor<T, Us> and ...); }(List{}));
-
-// nttp version to work with any template callable object
 template <auto T, typename... Args>
 concept MetafunctionObjectFor = requires { T.template operator()<Args...>(); };
 
@@ -53,26 +40,15 @@ concept UnaryMetafunctionObjectForList
       and ([]<typename... Us>(list<Us...>)
            { return (MetafunctionObjectFor<T, Us> and ...); }(List{}));
 
-// a type which accepts a single template parameter and yields a bool. useful
-// to pass as predicates to tmp algorithms
-template <typename T, typename Arg>
-concept UnaryPredicateFor = requires {
-    { T::template invoke<Arg>::value } -> std::convertible_to<bool>;
-};
-
-// for convenience if the predicate arguments are already in a tmcpp::list<>
-template <typename T, typename List>
-concept UnaryPredicateForList
-    = ListLike<List> and not tmcpp::is_empty_v<List>
-      and ([]<typename... Us>(list<Us...>)
-           { return (UnaryPredicateFor<T, Us> and ... and true); }(List{}));
-
+// a type with a templated call operator that returns bool. useful to constrain
+// algorithms that accept predicates
 template <auto T, typename Arg>
 concept UnaryPredicateObjectFor = requires {
     { T.template operator()<Arg>() } -> std::convertible_to<bool>;
 };
 
-// for convenience if the predicate arguments are already in a tmcpp::list<>
+// for convenience if the predicate arguments are already in a list-like
+// structure
 template <auto T, typename List>
 concept UnaryPredicateObjectForList
     = ListLike<List> and not tmcpp::is_empty_v<List>
@@ -80,18 +56,9 @@ concept UnaryPredicateObjectForList
            { return (UnaryPredicateObjectFor<T, Us> and ... and true); }(
                List{}));
 
-template <typename T, typename Arg1, typename Arg2>
-concept BinaryPredicateFor = requires {
-    { T::template invoke<Arg1, Arg2>::value } -> std::convertible_to<bool>;
-};
-
 template <auto T, typename Arg1, typename Arg2>
 concept BinaryPredicateObjectFor = requires {
     { T.template operator()<Arg1, Arg2>() } -> std::convertible_to<bool>;
 };
-
-// TODO: i want to write a 'concept comparator_metafunction_for', but im not
-// exactly sure how to write a concept for a metafunction that takes 2 args,
-// for each pair of args in a list. we should write one later for consistency
 
 };  // namespace tmcpp
