@@ -13,6 +13,7 @@ target_sources(all-tests
     PRIVATE
         tmcpp/consteval_string.cpp
         tmcpp/tmcpp.cpp
+        tmcpp/list.cpp
 )
 target_link_libraries(all-tests
     tmcpp::tmcpp

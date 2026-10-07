@@ -23,9 +23,6 @@ concept TemplateOf
                            }),
                            T>::value;
 
-template <typename T>
-concept ListLike = TemplateOf<T, list>;
-
 // metafunctions must define a template alias member 'invoke', and must accept
 // any arity of arguments Args
 template <typename T, typename... Args>
@@ -34,7 +31,7 @@ concept MetafunctionFor = requires { typename T::template invoke<Args...>; };
 // checks that T can be invoked with all types in List, one-at-a-time
 template <typename T, typename List>
 concept UnaryMetafunctionForList
-    = ListLike<List> and not List::is_empty
+    = ListLike<List> and not tmcpp::is_empty_v<List>
       and ([]<typename... Us>(list<Us...>)
            { return (MetafunctionFor<T, Us> and ...); }(List{}));
 
@@ -55,7 +52,7 @@ concept MetafunctionObjectFor = requires { T.template operator()<Args...>(); };
 // nonempty list for now
 template <auto T, typename List>
 concept UnaryMetafunctionObjectForList
-    = ListLike<List> and not List::is_empty
+    = ListLike<List> and not tmcpp::is_empty_v<List>
       and ([]<typename... Us>(list<Us...>)
            { return (MetafunctionObjectFor<T, Us> and ...); }(List{}));
 
@@ -69,7 +66,7 @@ concept UnaryPredicateFor = requires {
 // for convenience if the predicate arguments are already in a tmcpp::list<>
 template <typename T, typename List>
 concept UnaryPredicateForList
-    = ListLike<List> and not List::is_empty
+    = ListLike<List> and not tmcpp::is_empty_v<List>
       and ([]<typename... Us>(list<Us...>)
            { return (UnaryPredicateFor<T, Us> and ... and true); }(List{}));
 
@@ -81,7 +78,7 @@ concept UnaryPredicateObjectFor = requires {
 // for convenience if the predicate arguments are already in a tmcpp::list<>
 template <auto T, typename List>
 concept UnaryPredicateObjectForList
-    = ListLike<List> and not List::is_empty
+    = ListLike<List> and not tmcpp::is_empty_v<List>
       and ([]<typename... Us>(list<Us...>)
            { return (UnaryPredicateObjectFor<T, Us> and ... and true); }(
                List{}));

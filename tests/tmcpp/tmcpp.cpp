@@ -5,69 +5,6 @@
 
 #include <type_traits>
 
-TEST(list, at)
-{
-    using L = tmcpp::list<bool, int, double, float>;
-    using Actual0 = L::at<0>;
-    using Actual1 = L::at<1>;
-    using Actual2 = L::at<2>;
-    using Actual3 = L::at<3>;
-    // should not compile:
-    // using Actual4 = tmcpp::at<4, L>;
-
-    static_assert(std::is_same_v<Actual0, bool>);
-    static_assert(std::is_same_v<Actual1, int>);
-    static_assert(std::is_same_v<Actual2, double>);
-    static_assert(std::is_same_v<Actual3, float>);
-}
-
-template <typename List>
-consteval auto
-get_first()
-{
-    static_assert(not List::is_empty);
-
-    // NOTE: notice we need the 'template' keyword when using 'at<>'... thats
-    // ugly
-    using first = List::template at<0>;
-    return first{};
-}
-
-TEST(list, at_within_template_function)
-{
-    using L = tmcpp::list<bool, int, double, float>;
-
-    using expected = bool;
-    using actual = decltype(get_first<L>());
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-template <typename List>
-using get_first_alias = decltype([](){
-    static_assert(not List::is_empty);
-
-    using first = List::template at<0>;
-    return first{};
-}());
-
-TEST(list, at_within_template_type_alias)
-{
-    using L = tmcpp::list<bool, int, double, float>;
-
-    using expected = bool;
-    using actual = get_first_alias<L>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(list, size)
-{
-    using L = tmcpp::list<int, bool, double>;
-
-    static_assert(L::size == 3);
-}
-
 TEST(rename, list_to_tuple_simple)
 {
     using list = tmcpp::list<bool, float, int>;
@@ -98,7 +35,7 @@ TEST(rename, list_to_tuple_empty)
     static_assert(std::is_same_v<actual, expected>);
 }
 
-TEST(algorithm, concatenate)
+TEST(concatenate, simple)
 {
     using L1 = tmcpp::list<int, bool, double>;
     using L2 = tmcpp::list<float, long>;
@@ -111,7 +48,7 @@ TEST(algorithm, concatenate)
     static_assert(std::is_same_v<L, Expected>);
 }
 
-TEST(algorithm, concatenate_with_empty_list)
+TEST(concatenate, with_empty_list)
 {
     using L1 = tmcpp::list<int, bool, double>;
     using L2 = tmcpp::list<>;
@@ -123,7 +60,7 @@ TEST(algorithm, concatenate_with_empty_list)
     static_assert(std::is_same_v<L, Expected>);
 }
 
-TEST(algorithm, concatenate_with_no_lists)
+TEST(concatenate, with_no_lists)
 {
     using Actual = tmcpp::concatenate<>;
     using Expected = tmcpp::list<>;
