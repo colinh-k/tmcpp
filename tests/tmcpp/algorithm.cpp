@@ -225,41 +225,6 @@ TEST(transform, empty_list)
 }
 #endif
 
-struct type_comparator
-{
-    template <typename T, typename U> using invoke = std::is_same<T, U>;
-};
-
-TEST(append_if_unique, appends_if_type_not_in_list_already)
-{
-    using L = tmcpp::list<int>;
-
-    using expected = tmcpp::list<int, bool>;
-    using actual = tmcpp::append_if_unique<type_comparator, L, bool>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(append_if_unique, does_not_append_if_type_in_list_already)
-{
-    using L = tmcpp::list<int>;
-
-    using expected = tmcpp::list<int>;
-    using actual = tmcpp::append_if_unique<type_comparator, L, int>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
-TEST(append_if_unique, on_empty_list)
-{
-    using L = tmcpp::list<>;
-
-    using expected = tmcpp::list<int>;
-    using actual = tmcpp::append_if_unique<type_comparator, L, int>;
-
-    static_assert(std::is_same_v<actual, expected>);
-}
-
 // TODO: for now, the remove_duplicates implemntation retains the LAST instance
 // of a type, so we check for that here. if we change the implmentation later
 // to keep the FIRST instance of a type, we will need to refactor the expected

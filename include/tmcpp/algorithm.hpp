@@ -50,22 +50,6 @@ template <ListLike... Lists>
 using concatenate = std::remove_cvref_t<decltype((std::declval<Lists>() + ...
                                                   + std::declval<list<>>()))>;
 
-// return list<Ts..., U> where Ts are the types in List provided U is not in Ts
-// (as decided by the comparator); otherwise return List
-template <typename Comparator, ListLike List, typename U>
-using append_if_unique = std::invoke_result_t<
-    decltype([]<typename... Ts>(list<Ts...>)
-                 -> std::conditional_t<
-                     (Comparator::template invoke<Ts, U>::value or ...
-                      or false),
-                     List,
-                     list<Ts..., U>>
-             // TODO: clang crashes if this requires clause is un-commented:
-             // requires (BinaryTypePredicateFor<Comparator, Ts, U>
-             // and ... and true)
-             {}),
-    List>;
-
 // removes duplicates by keeping the first instance of a type, decided by
 // Comparator
 //
