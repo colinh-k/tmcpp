@@ -76,7 +76,7 @@ using append_if_unique = std::invoke_result_t<
                      List,
                      list<Ts..., U>>
              // TODO: clang crashes if this requires clause is un-commented:
-             // requires(concepts::BinaryPredicateFor<Comparator, Ts, U>
+             // requires(BinaryPredicateFor<Comparator, Ts, U>
              // and ... and true)
              {}),
     List>;
@@ -152,7 +152,7 @@ using remove_duplicates
 // after having Fn applied to it, using the library's definition of
 // 'metafunction application'
 template <typename Fn, ListLike List>
-    requires(concepts::UnaryMetafunctionForList<Fn, List>)
+    requires(UnaryMetafunctionForList<Fn, List>)
 using transform = std::invoke_result_t<
     decltype([]<typename... Types>(list<Types...>)
                  -> list<typename Fn::template invoke<Types>...> {}),
@@ -165,7 +165,7 @@ using transform = std::invoke_result_t<
 // NOTE:must have different name than 'transform' since type aliases
 // do not participate in overload resolution, sadly
 template <auto Fn, ListLike List>
-    requires(concepts::UnaryMetafunctionObjectForList<Fn, List>)
+    requires(UnaryMetafunctionObjectForList<Fn, List>)
 using transform_with = std::invoke_result_t<
     decltype([]<typename... Types>(list<Types...>)
                  -> list<decltype(Fn.template operator()<Types>())...> {}),
@@ -186,7 +186,7 @@ using front_or = std::invoke_result_t<decltype([]{
 
 // yields a list<> containing all types in List which satisfy Predicate
 template <typename Predicate, ListLike List>
-    requires(concepts::UnaryPredicateForList<Predicate, List>)
+    requires(UnaryPredicateForList<Predicate, List>)
 using filter = std::invoke_result_t<
     decltype([]<typename... Ts>(list<Ts...>)
                  -> concatenate<
@@ -197,7 +197,7 @@ using filter = std::invoke_result_t<
 
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+    requires(UnaryPredicateObjectForList<Predicate, List>)
 using filter_with = std::invoke_result_t<
     decltype([]<typename... Ts>(list<Ts...>)
                  ->concatenate<
@@ -213,12 +213,12 @@ using filter_with = std::invoke_result_t<
 // easier to chain algorithms using the result of find_if<>, without needing to
 // make a special case to check not_found
 template <typename Predicate, ListLike List>
-    requires(concepts::UnaryPredicateForList<Predicate, List>)
+    requires(UnaryPredicateForList<Predicate, List>)
 using find_if = front_or<filter<Predicate, List>, not_found>;
 
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+    requires(UnaryPredicateObjectForList<Predicate, List>)
 using find_if_with = front_or<filter_with<Predicate, List>, not_found>;
 
 // returns a list<> of std::integral_constant<std::size_t, I> where each I is
@@ -231,7 +231,7 @@ using find_if_with = front_or<filter_with<Predicate, List>, not_found>;
 // parameter and access the elements of the list via typename List::template
 // at<I>, but thats a lil more verbose
 template <typename Predicate, ListLike List>
-    requires(concepts::UnaryPredicateForList<Predicate, List>)
+    requires(UnaryPredicateForList<Predicate, List>)
 using filter_index = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
@@ -244,7 +244,7 @@ using filter_index = std::invoke_result_t<
 
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+    requires(UnaryPredicateObjectForList<Predicate, List>)
 using filter_index_with = std::invoke_result_t<
     decltype([]<std::size_t... I, typename... Ts>(std::index_sequence<I...>,
                                                   list<Ts...>)
@@ -259,12 +259,12 @@ using filter_index_with = std::invoke_result_t<
 // the list containing a type satisfying the predicate. returns not_found if no
 // such type exists in the list
 template <typename Predicate, ListLike List>
-    requires(concepts::UnaryPredicateForList<Predicate, List>)
+    requires(UnaryPredicateForList<Predicate, List>)
 using find_index_if = front_or<filter_index<Predicate, List>, not_found>;
 
 // nttp version
 template <auto Predicate, ListLike List>
-    requires(concepts::UnaryPredicateObjectForList<Predicate, List>)
+    requires(UnaryPredicateObjectForList<Predicate, List>)
 using find_index_if_with
     = front_or<filter_index_with<Predicate, List>, not_found>;
 

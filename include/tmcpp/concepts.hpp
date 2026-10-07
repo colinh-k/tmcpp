@@ -8,9 +8,6 @@
 namespace tmcpp
 {
 
-namespace concepts
-{
-
 // constrains T to be a template type matching Template, but T and Template may
 // have different template arguments
 // eg TemplateOf<std::tuple<int, float>, std::tuple> is legal
@@ -96,7 +93,5 @@ concept BinaryPredicateObjectFor = requires {
 // TODO: i want to write a 'concept comparator_metafunction_for', but im not
 // exactly sure how to write a concept for a metafunction that takes 2 args,
 // for each pair of args in a list. we should write one later for consistency
-
-};  // namespace concepts
 
 };  // namespace tmcpp

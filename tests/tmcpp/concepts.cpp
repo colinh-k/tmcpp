@@ -24,7 +24,7 @@ TEST(concepts, predicate_metafunction_for_simple)
     // just check that type_equal_to_int is a predicate for some arbitrary
     // builtin types
     static_assert(
-        tmcpp::concepts::predicate_metafunction_for<type_equal_to_int, int,
+        tmcpp::predicate_metafunction_for<type_equal_to_int, int,
                                                     double, bool, float>);
 }
 
@@ -37,7 +37,7 @@ TEST(concepts, predicate_metafunction_for_with_template_class)
     // in local scope, so the solution is to declare a template class predicate
     // and pass the auxiliary template argument at the call site)
     static_assert(
-        tmcpp::concepts::predicate_metafunction_for<type_equal_to<double>, int,
+        tmcpp::predicate_metafunction_for<type_equal_to<double>, int,
                                                     double, bool, float>);
 }
 
@@ -47,7 +47,7 @@ TEST(concepts, predicate_metafunction_for_list_simple)
     // builtin types
     using L = tmcpp::list<int, double, bool, float>;
     static_assert(
-        tmcpp::concepts::predicate_metafunction_for_list<type_equal_to_int, L,
+        tmcpp::predicate_metafunction_for_list<type_equal_to_int, L,
                                                          tmcpp::list>);
 }
 
@@ -73,6 +73,6 @@ TEST(concepts, predicate_metafunction_for)
     // static_assert(
     //     std::is_convertible_v<decltype(P1::template value<int>), bool>);
 
-    // static_assert(tmcpp::concepts::predicate_metafunction_for<P1, int>);
+    // static_assert(tmcpp::predicate_metafunction_for<P1, int>);
 }
 #endif
