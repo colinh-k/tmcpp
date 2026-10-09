@@ -3,6 +3,11 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 
+struct NonDefaultConstructibleType
+{
+    NonDefaultConstructibleType() = delete;
+};
+
 TEST(rename, list_to_tuple_simple)
 {
     using list = tmcpp::list<bool, float, int>;
@@ -66,6 +71,18 @@ TEST(concatenate, with_no_lists)
     static_assert(std::is_same_v<Actual, Expected>);
 }
 
+TEST(concatenate, accepts_non_default_constructible_type)
+{
+    using list1 = tmcpp::list<NonDefaultConstructibleType>;
+    using list2 = tmcpp::list<NonDefaultConstructibleType, int>;
+
+    using actual = tmcpp::concatenate<list1, list2>;
+    using expected = tmcpp::list<NonDefaultConstructibleType,
+                                 NonDefaultConstructibleType, int>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 TEST(front_or, non_empty)
 {
     using L = tmcpp::list<double, float, int>;
@@ -96,6 +113,26 @@ TEST(front_or, empty_with_void_default)
     static_assert(std::is_same_v<actual, expected>);
 }
 
+TEST(front_or, accepts_non_default_constructible_type_in_list)
+{
+    using list = tmcpp::list<NonDefaultConstructibleType>;
+
+    using expected = NonDefaultConstructibleType;
+    using actual = tmcpp::front_or<list, void>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(front_or, accepts_non_default_constructible_type_as_default)
+{
+    using list = tmcpp::list<>;
+
+    using expected = NonDefaultConstructibleType;
+    using actual = tmcpp::front_or<list, NonDefaultConstructibleType>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 #if 0
 TEST(filter, empty)
 {
@@ -120,6 +157,32 @@ TEST(filter, lambda_simple)
     static_assert(std::is_same_v<actual, expected>);
 }
 
+TEST(filter, accepts_non_default_constructible_type_in_list)
+{
+    using list = tmcpp::list<int, NonDefaultConstructibleType, bool, float,
+                             NonDefaultConstructibleType>;
+
+    using expected = tmcpp::list<int, bool>;
+    using actual = tmcpp::filter<list, []<typename T>
+                                 { return std::is_integral_v<T>; }>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(filter, non_default_constructible_type_in_return_type)
+{
+    using list = tmcpp::list<int, NonDefaultConstructibleType, bool, float,
+                             NonDefaultConstructibleType>;
+
+    using expected = tmcpp::list<NonDefaultConstructibleType,
+                                 NonDefaultConstructibleType>;
+    using actual = tmcpp::filter<
+        list, []<typename T>
+        { return std::is_same_v<T, NonDefaultConstructibleType>; }>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 TEST(find_if, simple_lambda)
 {
     using list = tmcpp::list<int, bool, double, bool, float>;
@@ -138,6 +201,31 @@ TEST(find_if, none)
     using expected = tmcpp::not_found;
     using actual = tmcpp::find_if<list, []<typename T>
                                   { return std::is_same_v<T, unsigned>; }>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(find_if, accepts_non_default_constructible_type_in_list)
+{
+    using list = tmcpp::list<double, NonDefaultConstructibleType, bool, float,
+                             NonDefaultConstructibleType>;
+
+    using expected = bool;
+    using actual = tmcpp::find_if<list, []<typename T>
+                                  { return std::is_integral_v<T>; }>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(find_if, non_default_constructible_type_in_return_type)
+{
+    using list = tmcpp::list<double, NonDefaultConstructibleType, bool, float,
+                             NonDefaultConstructibleType>;
+
+    using expected = NonDefaultConstructibleType;
+    using actual = tmcpp::find_if<
+        list, []<typename T>
+        { return std::is_same_v<T, NonDefaultConstructibleType>; }>;
 
     static_assert(std::is_same_v<actual, expected>);
 }
@@ -200,6 +288,18 @@ TEST(transform, simple_lambda)
     static_assert(std::is_same_v<actual, expected>);
 }
 
+TEST(transform, accepts_non_default_constructible_type)
+{
+    using List = tmcpp::list<int, NonDefaultConstructibleType, float, bool,
+                             NonDefaultConstructibleType>;
+
+    using expected = tmcpp::list<int *, NonDefaultConstructibleType *, float *,
+                                 bool *, NonDefaultConstructibleType *>;
+    using actual = tmcpp::transform<List, []<typename T> -> T * {}>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
 // for now, we cant pass empty lists due to the concept constraint
 #if 0
 TEST(transform, empty_list)
@@ -233,6 +333,19 @@ TEST(remove_duplicates, empty)
 
     using expected = tmcpp::list<>;
     using actual = tmcpp::remove_duplicates<L>;
+
+    static_assert(std::is_same_v<actual, expected>);
+}
+
+TEST(remove_duplicates, accepts_non_default_constructible_type)
+{
+    using list = tmcpp::list<int, double, NonDefaultConstructibleType, bool,
+                             bool, NonDefaultConstructibleType,
+                             NonDefaultConstructibleType, double, float>;
+
+    using expected
+        = tmcpp::list<int, double, NonDefaultConstructibleType, bool, float>;
+    using actual = tmcpp::remove_duplicates<list>;
 
     static_assert(std::is_same_v<actual, expected>);
 }

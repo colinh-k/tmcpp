@@ -2,6 +2,7 @@
 
 #include "tmcpp/concepts.hpp"
 #include "tmcpp/list.hpp"
+#include "tmcpp/multilambda.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -111,14 +112,18 @@ using transform = std::invoke_result_t<
 // empty
 // NOTE: we cant just use std::conditional_t<> since we need short-circuit
 // evaluation, ie at<0, List> must only be evaluated for non-empty lists
+// NOTE: we return an instance of std::type_identity since it doesnt construct
+// a value of the type. then we extract the type after
+// std::invoke_result_t. this means Default or first List element
+// can be non-default-constructible.
 template <ListLike List, typename Default>
 using front_or = std::invoke_result_t<decltype([]{
     if constexpr (is_empty_v<List>) {
-        return Default{};
+        return std::type_identity<Default>{};
     } else {
-        return at<0, List>{};
+        return std::type_identity<at<0, List>>{};
     }
-})>;
+})>::type;
 
 // yields a list<> containing all types in List which satisfy Predicate
 template <ListLike List, auto Predicate>

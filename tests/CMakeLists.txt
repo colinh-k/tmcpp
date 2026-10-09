@@ -14,6 +14,7 @@ target_sources(all-tests
         tmcpp/consteval_string.cpp
         tmcpp/algorithm.cpp
         tmcpp/list.cpp
+        tmcpp/concepts.cpp
 )
 target_link_libraries(all-tests
     tmcpp::tmcpp

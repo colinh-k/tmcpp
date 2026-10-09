@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <type_traits>
 
 #include "tmcpp/list.hpp"
 #include "tmcpp/multilambda.hpp"

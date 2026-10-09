@@ -1,76 +1,66 @@
 #include "tmcpp/concepts.hpp"
 
+#include <concepts>
 #include <gtest/gtest.h>
-
-// example predicates
-
-struct type_equal_to_int
-{
-    template <typename U> using invoke = std::is_same<int, U>;
-};
-
-template <typename T> struct type_equal_to
-{
-    template <typename U> using invoke = std::is_same<T, U>;
-};
 
 // TODO: we need tests to check that common mistakes dont compile, eg checking
 // that a predicate accepts every expected type in a list
 
-TEST(concepts, predicate_metafunction_for_simple)
+// just a simple test
+TEST(TypeFunctionFor, lambda_accepts_single_type_argument)
 {
-    // just check that type_equal_to_int is a predicate for some arbitrary
-    // builtin types
-    static_assert(
-        tmcpp::predicate_metafunction_for<type_equal_to_int, int,
-                                                    double, bool, float>);
+    // inferred from return type
+    static_assert(tmcpp::TypeFunctionFor<[]<typename T> -> T {}, int>);
+    // inferred from body
+    static_assert(tmcpp::TypeFunctionFor<[]<typename T> { return T{}; }, int>);
 }
 
-TEST(concepts, predicate_metafunction_for_with_template_class)
+TEST(TypeFunctionFor, lambda_accepts_multiple_type_arguments)
 {
-    // check that we can generate a predicate from a template class for some
-    // arbitrary builtin types.
-    // useful for when you want a predicate to be templated on some template
-    // argument in a local scope (but its illegal to declare a template struct
-    // in local scope, so the solution is to declare a template class predicate
-    // and pass the auxiliary template argument at the call site)
+    // returns a list of types in reverse order just for fun
     static_assert(
-        tmcpp::predicate_metafunction_for<type_equal_to<double>, int,
-                                                    double, bool, float>);
+        tmcpp::TypeFunctionFor<
+            []<typename T, typename U, typename V> -> tmcpp::list<V, U, T> {},
+            int, double, bool>);
+    static_assert(tmcpp::TypeFunctionFor<[]<typename T, typename U, typename V>
+                                         { return tmcpp::list<V, U, T>{}; },
+                                         int, double, bool>);
 }
 
-TEST(concepts, predicate_metafunction_for_list_simple)
+struct NonDefaultCtorType
 {
-    // just check that type_equal_to_int is a predicate for some arbitrary
-    // builtin types
-    using L = tmcpp::list<int, double, bool, float>;
-    static_assert(
-        tmcpp::predicate_metafunction_for_list<type_equal_to_int, L,
-                                                         tmcpp::list>);
-}
-
-// compile this example under clang to see a mysterious error involving 'const
-// auto'; you must NOT use 'auto' for template members of template classes (ie
-// use the explicit type instead)
-#if 0
-template <typename U> struct foo
-{
-    template <typename T> static constexpr auto value = true;
+    NonDefaultCtorType() = delete;
 };
 
-TEST(concepts, predicate_metafunction_for)
+TEST(TypeFunctionFor, non_default_ctor_type)
 {
-    using X = decltype(foo<void>::template value<void>);
-    X x = true;
-
-    static_assert(std::is_same_v<X, const bool>);
-    static_assert(std::is_convertible_v<X, bool>);
-
-    // using P1 = type_equal_to<int>;
-
-    // static_assert(
-    //     std::is_convertible_v<decltype(P1::template value<int>), bool>);
-
-    // static_assert(tmcpp::predicate_metafunction_for<P1, int>);
+    static_assert(
+        tmcpp::TypeFunctionFor<[]<typename T> -> T {}, NonDefaultCtorType>);
+    // NOTE: if we use the return-type-inferred-from-body technique, then we
+    // must constrain the lambda to check T is default initializable. if we
+    // dont, then the compiler yields a hard error during concept checking,
+    // which defeats the purpose of concepts
+    static_assert(
+        not tmcpp::TypeFunctionFor<[]<std::default_initializable T>
+                                   { return T{}; }, NonDefaultCtorType>);
 }
-#endif
+
+TEST(TypeFunctionFor, rejects_lambda_that_takes_non_template_parameter)
+{
+    static_assert(
+        not tmcpp::TypeFunctionFor<[]<typename T>(T x) -> T {}, double>);
+    static_assert(
+        not tmcpp::TypeFunctionFor<[]<typename T>(T x) { return x; }, double>);
+}
+
+TEST(TypeFunctionFor, rejects_if_lambda_not_compatible_with_type)
+{
+    // notice we can constrain the type argument of the lambda
+    static_assert(
+        not tmcpp::TypeFunctionFor<[]<std::floating_point T> -> T {}, int>);
+    // example with accepting with constrained type argument
+    static_assert(
+        tmcpp::TypeFunctionFor<[]<std::floating_point T> -> T {}, double>);
+}
+
+// TODO: add tests for all concepts
